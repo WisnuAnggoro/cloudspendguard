@@ -2,7 +2,7 @@
 
 > Unified FinOps + Cloud Security Posture CLI for AWS. Local-first. Written in Go.
 
-**Status:** early scaffold — MSIT 5910 Capstone Project.
+**Status:** Unit 2 (Week 2): repo scaffolding complete. Package layout for ingest, store, analyze, LLM, and report modules is in place with stub implementations; real logic lands starting Unit 3 (`v0.1.0-ingest`). See [`docs/gantt.mmd`](docs/gantt.mmd) for the full 8-week schedule.
 
 CloudSpendGuard produces a **single prioritized backlog** of remediation actions where each item shows both its **projected monthly savings** and **security-risk reduction**, so DevOps, FinOps, and Security teams stop working from three different dashboards.
 
@@ -57,7 +57,7 @@ make run-sample
 
 ## Roadmap
 
-See [`docs/roadmap.md`](docs/roadmap.md). This project is a Master's capstone; contributions welcome after v1.0.0.
+See the [8-week Gantt chart](docs/gantt.mmd) and [architecture doc](docs/architecture.md) for the module-by-module delivery plan (`v0.1.0-ingest` through `v1.0.0`). This project is a Master's capstone; contributions welcome after v1.0.0.
 
 ## License
 
