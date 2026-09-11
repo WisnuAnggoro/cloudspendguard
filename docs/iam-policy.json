@@ -1,0 +1,53 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "CloudSpendGuardReadOnlyCost",
+      "Effect": "Allow",
+      "Action": [
+        "ce:Get*",
+        "ce:List*",
+        "ce:Describe*",
+        "cur:Describe*",
+        "budgets:View*"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "CloudSpendGuardReadOnlyAudit",
+      "Effect": "Allow",
+      "Action": [
+        "cloudtrail:LookupEvents",
+        "cloudtrail:Describe*",
+        "cloudtrail:Get*",
+        "cloudtrail:List*"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "CloudSpendGuardReadOnlyInventory",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:Describe*",
+        "s3:GetBucket*",
+        "s3:ListAllMyBuckets",
+        "s3:ListBucket",
+        "rds:Describe*",
+        "iam:Get*",
+        "iam:List*",
+        "elasticloadbalancing:Describe*",
+        "lambda:Get*",
+        "lambda:List*",
+        "cloudfront:Get*",
+        "cloudfront:List*"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "CloudSpendGuardCURObjectRead",
+      "Effect": "Allow",
+      "Action": ["s3:GetObject"],
+      "Resource": "arn:aws:s3:::REPLACE_WITH_YOUR_CUR_BUCKET/*"
+    }
+  ]
+}
