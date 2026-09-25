@@ -29,7 +29,10 @@ A single register tracking **Risks, Assumptions, Issues, and Dependencies** for 
 | R-04 | R | Prompt-injection guardrails have false-positive rate that blocks legitimate remediation suggestions | Medium | Medium | Maintain adversarial test suite of 30 payloads with expected outcomes; measure both true-positive and false-positive rates in Week 5 | Open | 2026-09-06 |
 | R-05 | R | Scope creep from adding Azure or GCP support after early positive feedback | High | Medium | Documented scope boundary in Unit 2 assignment; refuse scope changes after Week 3; log rejected scope requests as "future work" in report | Open | 2026-09-06 |
 | R-06 | R | Personal illness or work travel disrupts a peak week (3, 5, or 6) | High | Low | Front-load work: aim to complete each unit's engineering deliverable by Monday, leaving Tue/Wed as buffer | Open | 2026-09-06 |
-| R-07 | R | Hallucinated Terraform patches from LLM introduce new security findings not caught by verifier | High | Medium | Generate-then-verify loop: re-scan every patch; reject patches that fail verification; log rejection rate as a metric | Open | 2026-09-06 |
+| R-07 | R | Hallucinated Terraform patches from LLM introduce new security findings not caught by verifier | High | Medium | Generate-then-verify loop: re-scan every patch; reject patches that fail verification; log rejection rate as a metric | Mitigating | 2026-09-19 |
+| R-08 | R | Weight coefficients in the M7 scoring function are effectively unfalsifiable, making the ranking a hidden value judgment | Medium | High | Weights configurable per stakeholder profile; active coefficients and component subscores printed in every report; savings reported as a range rather than a point estimate | Mitigating | 2026-09-19 |
+| R-09 | R | Resource tags and Terraform comments are attacker-influenced text flowing into an LLM prompt (indirect prompt injection, OWASP LLM01) | High | Medium | Untrusted data confined to a delimited prompt block; output contract restricted to a diff against one named resource; adversarial payload suite in `internal/llm` tests | Mitigating | 2026-09-19 |
+| R-10 | R | Comparative evaluation lacks a defensible baseline because no existing tool produces a joint cost-and-risk ranking | Medium | Medium | Baseline against the union of a cost tool and a CSPM tool run separately; document the composition method in the evaluation chapter | Open | 2026-09-19 |
 
 ## Assumptions
 
@@ -66,6 +69,7 @@ A single register tracking **Risks, Assumptions, Issues, and Dependencies** for 
 | Date | Change |
 |---|---|
 | 2026-09-06 | Initial RAID log created for Unit 1 discussion submission |
+| 2026-09-19 | Unit 3 design review: added R-08 (prioritizer weight transparency), R-09 (indirect prompt injection), R-10 (evaluation baseline). Moved R-07 to `Mitigating` now that M9 is specified as a package separate from M8 in `docs/architecture.md`. |
 
 ## References
 
