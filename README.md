@@ -2,7 +2,7 @@
 
 > Unified FinOps + Cloud Security Posture CLI for AWS. Local-first. Written in Go.
 
-**Status:** Unit 2 (Week 2): repo scaffolding complete. Package layout for ingest, store, analyze, LLM, and report modules is in place with stub implementations; real logic lands starting Unit 3 (`v0.1.0-ingest`). See [`docs/gantt.mmd`](docs/gantt.mmd) for the full 8-week schedule.
+**Status:** Unit 3 (Week 3): design baseline frozen. The architecture is specified as a seven-layer pipeline of 12 modules (M1 through M11 plus M3b) in [`docs/architecture.md`](docs/architecture.md), with testable requirements FR1 through FR9 and NFR1 through NFR5 in [`docs/requirements.md`](docs/requirements.md) and the branching contract in [`docs/version-control.md`](docs/version-control.md). Package layout is in place with stub implementations; ingestion logic lands next (`v0.1.0-ingest`). See [`docs/gantt.mmd`](docs/gantt.mmd) for the full 8-week schedule.
 
 CloudSpendGuard produces a **single prioritized backlog** of remediation actions where each item shows both its **projected monthly savings** and **security-risk reduction**, so DevOps, FinOps, and Security teams stop working from three different dashboards.
 
@@ -57,7 +57,7 @@ make run-sample
 
 ## Roadmap
 
-See the [8-week Gantt chart](docs/gantt.mmd) and [architecture doc](docs/architecture.md) for the module-by-module delivery plan (`v0.1.0-ingest` through `v1.0.0`). This project is a Master's capstone; contributions welcome after v1.0.0.
+See the [8-week Gantt chart](docs/gantt.mmd), [architecture doc](docs/architecture.md), and [requirements spec](docs/requirements.md) for the module-by-module delivery plan (`v0.1.0-ingest` through `v1.0.0`). This project is a Master's capstone; contributions welcome after v1.0.0.
 
 ## License
 
