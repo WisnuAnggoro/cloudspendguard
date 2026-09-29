@@ -1,0 +1,38 @@
+%%{init: {'theme': 'base'}}%%
+gantt
+    title CloudSpendGuard: 8-Week Capstone Schedule (MSIT 5910)
+    dateFormat YYYY-MM-DD
+    axisFormat  %b %d
+    todayMarker on
+
+    section Unit 1: Orientation
+    Repo setup, literature review, architecture stub :done, u1, 2026-08-31, 2026-09-06
+    Unit 1 discussion post                            :milestone, m1, 2026-09-06, 0d
+
+    section Unit 2: Proposal & Planning
+    Problem statement, scope, ethics matrix, planning tools :active, u2, 2026-09-07, 2026-09-13
+    Unit 2 assignment submitted                        :milestone, m2, 2026-09-13, 0d
+
+    section Unit 3: Detailed Design
+    CUR, CloudTrail, Terraform ingestion; DuckDB store :u3, 2026-09-14, 2026-09-20
+    Tag v0.1.0-ingest                                  :milestone, t1, 2026-09-20, 0d
+
+    section Unit 4: Initial Implementation
+    CI/CD pipeline; first cost and security detection rules :u4, 2026-09-21, 2026-09-27
+    Tag v0.2.0-analyze-alpha                           :milestone, t2, 2026-09-27, 0d
+
+    section Unit 5: Algorithm & LLM Engine
+    Anomaly detection, prioritizer, LLM engine, unit tests :u5, 2026-09-28, 2026-10-04
+    Tag v0.3.0-algo                                    :milestone, t3, 2026-10-04, 0d
+
+    section Unit 6: Integration & Evaluation
+    End-to-end integration, evaluation, deployment plan :u6, 2026-10-05, 2026-10-11
+    Tag v0.6.0-beta                                    :milestone, t4, 2026-10-11, 0d
+
+    section Unit 7: Testing & Maintenance
+    Testing suites, maintenance plan, initial full report :u7, 2026-10-12, 2026-10-18
+    Tag v0.9.0-rc1                                     :milestone, t5, 2026-10-18, 0d
+
+    section Unit 8: Final Delivery
+    Final polish, presentation, digital portfolio      :u8, 2026-10-19, 2026-10-25
+    Tag v1.0.0                                         :milestone, t6, 2026-10-25, 0d

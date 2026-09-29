@@ -2,8 +2,8 @@
 // that is the core research contribution of CloudSpendGuard.
 //
 // Score(f) = alpha * normalizedSavings(f)
-//          + beta  * normalizedRisk(f)
-//          - gamma * normalizedBlastRadius(f)
+//   - beta  * normalizedRisk(f)
+//   - gamma * normalizedBlastRadius(f)
 //
 // Weights are tunable per stakeholder profile (devops, finops, security, cxo).
 package prioritize

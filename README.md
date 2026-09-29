@@ -2,7 +2,7 @@
 
 > Unified FinOps + Cloud Security Posture CLI for AWS. Local-first. Written in Go.
 
-**Status:** early scaffold — MSIT 5910 Capstone Project.
+**Status:** Unit 4 (Week 4), `v0.2.0-analyze-alpha`. Ingestion (CUR Parquet and CSV, CloudTrail JSON, Terraform state), the local SQL store, `csg query`, and the first four rules (two cost, two security) feed the joint prioritizer through `csg analyze`. CI runs lint, a race-enabled test matrix on Linux, macOS, and Windows, a 90% coverage gate, static cross-compilation, `govulncheck`, and an end-to-end smoke test. See [`CHANGELOG.md`](CHANGELOG.md), the [demo runbook](docs/demo.md), and [`docs/gantt.mmd`](docs/gantt.mmd) for the remaining schedule.
 
 CloudSpendGuard produces a **single prioritized backlog** of remediation actions where each item shows both its **projected monthly savings** and **security-risk reduction**, so DevOps, FinOps, and Security teams stop working from three different dashboards.
 
@@ -22,20 +22,39 @@ CloudSpendGuard produces a **single prioritized backlog** of remediation actions
 - Local by default (Ollama); opt-in cloud LLM (OpenAI/Anthropic) with PII redaction
 - Output as Markdown, HTML, JSON, or SARIF (for GitHub/GitLab code-scanning)
 
-## Quickstart (planned CLI)
+## Quickstart
 
 ```bash
-# Install (once released)
-go install github.com/wisnuanggoro/cloudspendguard/cmd/csg@latest
+make build && export PATH="$PWD/bin:$PATH"
 
-# Try it against bundled sample data
-csg run --sample --report ./out.html
+# Ingest the bundled sample account (no AWS credentials needed)
+csg ingest cur        ./testdata/sample-cur.parquet
+csg ingest cloudtrail ./testdata/sample-events.json
+csg ingest tfstate    ./testdata/terraform.tfstate
 
-# Real usage
-csg ingest cur   ./cur/2026-01/*.parquet
-csg ingest cloudtrail ./cloudtrail/2026-01/*.json
-csg analyze --terraform ./infra --profile devops
-csg report --format html --out ./out.html
+# Ask the local store anything (read-only SQL)
+csg query "SELECT service, ROUND(SUM(cost), 2) AS cost FROM cur GROUP BY 1 ORDER BY 2 DESC"
+
+# One prioritized backlog of cost and security findings
+csg analyze --profile devops
+```
+
+Or run everything at once with `make demo`. Data lives in `.csg/csg.db` (override with `--db` or `$CSG_DB`).
+
+### Rules in v0.2.0
+
+| Rule | Kind | Signal | Control |
+|---|---|---|---|
+| `COST-EBS-IDLE-001` | cost | `aws_ebs_volume` with no `aws_volume_attachment`, priced from CUR | - |
+| `COST-EIP-UNATTACHED-001` | cost | `aws_eip` without association, or CUR `PublicIPv4:IdleAddress` | - |
+| `SEC-S3-PUBLIC-001` | security | public ACL, disabled Block Public Access, `Principal "*"` policy, or matching CloudTrail calls | CIS AWS v3.0.0 2.1.4 |
+| `SEC-IAM-ADMIN-001` | security | policy allowing `Action "*"` on `Resource "*"` in Terraform or CloudTrail | CIS AWS v3.0.0 1.16 |
+
+### Planned CLI (later units)
+
+```bash
+csg run --sample --report ./out.html                 # Unit 6
+csg report --format sarif --out ./csg.sarif          # Unit 6
 ```
 
 ## Local development
@@ -43,9 +62,11 @@ csg report --format html --out ./out.html
 ```bash
 git clone https://github.com/wisnuanggoro/cloudspendguard
 cd cloudspendguard
-make build
-make test
-make run-sample
+make build        # static binary (CGO_ENABLED=0)
+make test         # race detector, all packages
+make cover-gate   # 90% coverage gate on analyzers and algorithms
+make lint         # go vet + golangci-lint v2
+make ci           # everything GitHub Actions runs, locally
 ```
 
 ## Security & privacy
@@ -57,7 +78,7 @@ make run-sample
 
 ## Roadmap
 
-See [`docs/roadmap.md`](docs/roadmap.md). This project is a Master's capstone; contributions welcome after v1.0.0.
+See the [8-week Gantt chart](docs/gantt.mmd), [architecture doc](docs/architecture.md), and [requirements spec](docs/requirements.md) for the module-by-module delivery plan (`v0.1.0-ingest` through `v1.0.0`). This project is a Master's capstone; contributions welcome after v1.0.0.
 
 ## License
 
