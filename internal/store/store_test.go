@@ -128,7 +128,13 @@ func TestQuery(t *testing.T) {
 
 func TestOpen_BadPath(t *testing.T) {
 	dir := t.TempDir()
-	if _, err := Open(context.Background(), filepath.Join(dir, "db")); err != nil {
+	s, err := Open(context.Background(), filepath.Join(dir, "db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Close before TempDir cleanup: Windows cannot delete a file that is
+	// still open, so a leaked handle fails the test there.
+	if err := s.Close(); err != nil {
 		t.Fatal(err)
 	}
 	// A directory where the file should be cannot be opened as a database.
