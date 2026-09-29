@@ -48,15 +48,16 @@ A single register tracking **Risks, Assumptions, Issues, and Dependencies** for 
 
 | ID | Type | Description | Impact | Resolution | Status | Last reviewed |
 |---|---|---|---|---|---|---|
-| I-01 | I | *(No open issues at project start. Issues are added here as they materialize, typically converted from Risks.)* | — | — | — | 2026-09-06 |
+| I-01 | I | The DuckDB Go driver needs cgo, which breaks NFR4 (static `CGO_ENABLED=0` binary for macOS, Linux, and Windows) and the Windows leg of the CI matrix | Medium (NFR1 performance headroom smaller than planned) | Took the D-03 fallback: `internal/store` now uses pure-Go SQLite behind the unchanged `Store` interface. Re-evaluate DuckDB in Unit 6 against the NFR1 benchmark; swap only if SQLite misses the 60-second target | Resolved | 2026-09-25 |
+| I-02 | I | Week 3 ingest milestone (`v0.1.0-ingest`) slipped: M1 to M4 were still stubs at the start of Week 4 | Medium (Week 4 demo depended on ingest and query) | Delivered M1 to M4 together with the Week 4 analyzers in one milestone; CHANGELOG records both tags so the history stays honest | Resolved | 2026-09-25 |
 
 ## Dependencies
 
 | ID | Type | Description | Impact if unavailable | Mitigation / alternative | Status | Last reviewed |
 |---|---|---|---|---|---|---|
 | D-01 | D | Go 1.23+ installed on local dev machine | Blocks all engineering | Already installed and verified | Closed | 2026-09-06 |
-| D-02 | D | [Apache Arrow Go v14+](https://pkg.go.dev/github.com/apache/arrow/go/v14) for Parquet ingestion | Blocks CUR ingestion | Fallback CSV ingestion path; pure-Go CSV parser as backup | Open | 2026-09-06 |
-| D-03 | D | [DuckDB Go driver](https://github.com/marcboeker/go-duckdb) for local time-series store | Blocks Store module | Fallback to SQLite via `database/sql`; slower but functional | Open | 2026-09-06 |
+| D-02 | D | Pure-Go Parquet library for CUR ingestion. Planned: [Apache Arrow Go v14+](https://pkg.go.dev/github.com/apache/arrow/go/v14). Used: [parquet-go](https://github.com/parquet-go/parquet-go), which is lighter and maps rows straight onto Go structs | Blocks CUR ingestion | CSV ingestion path (CUR 1.0 and 2.0 headers) implemented alongside Parquet | Closed | 2026-09-25 |
+| D-03 | D | [DuckDB Go driver](https://github.com/marcboeker/go-duckdb) for local time-series store | Blocks Store module | Fallback taken: pure-Go SQLite ([modernc.org/sqlite](https://pkg.go.dev/modernc.org/sqlite)) via `database/sql`. See I-01 | Closed | 2026-09-25 |
 | D-04 | D | Ollama runtime installed locally with a suitable model | Blocks default LLM path | Optional OpenAI/Anthropic fallback (opt-in, budgeted) | Open | 2026-09-06 |
 | D-05 | D | Access to public sample datasets ([flaws.cloud](http://flaws.cloud/), [tfsec fixtures](https://github.com/aquasecurity/tfsec), [KICS fixtures](https://github.com/Checkmarx/kics)) | Blocks evaluation | All datasets are publicly hosted and archived; snapshot into `testdata/` in Week 3 to guard against upstream removal | Open | 2026-09-06 |
 | D-06 | D | UoPeople Brightspace access for weekly submissions | Blocks academic delivery | Submit early; keep offline copies of every submission | Open | 2026-09-06 |
@@ -70,6 +71,7 @@ A single register tracking **Risks, Assumptions, Issues, and Dependencies** for 
 |---|---|
 | 2026-09-06 | Initial RAID log created for Unit 1 discussion submission |
 | 2026-09-19 | Unit 3 design review: added R-08 (prioritizer weight transparency), R-09 (indirect prompt injection), R-10 (evaluation baseline). Moved R-07 to `Mitigating` now that M9 is specified as a package separate from M8 in `docs/architecture.md`. |
+| 2026-09-25 | Unit 4 implementation review: added I-01 (DuckDB replaced by pure-Go SQLite to keep NFR4) and I-02 (Week 3 ingest slip, recovered in Week 4); closed D-02 (parquet-go chosen over Arrow) and D-03 (fallback taken). |
 
 ## References
 

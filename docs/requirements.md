@@ -40,7 +40,7 @@ nominally complete yet operationally unusable
 
 | NFR | Enforced by | Evidence |
 |---|---|---|
-| NFR1 | M1 streaming reads, M4 DuckDB | Benchmark in CI, recorded per release tag |
+| NFR1 | M1 streaming reads, M4 embedded SQL store (SQLite now, DuckDB candidate, RAID I-01) | Benchmark in CI, recorded per release tag |
 | NFR2 | M8 sanitizer, default Ollama backend | Network-isolation test asserting zero outbound connections without the flag |
 | NFR3 | Pure-function module entry points | `make cover` gate in `.github/workflows/ci.yml` |
 | NFR4 | `CGO_ENABLED=0` static build | Cross-compilation matrix in CI |

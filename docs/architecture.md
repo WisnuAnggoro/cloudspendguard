@@ -39,11 +39,11 @@ python3 docs/design/architecture_diagram.py   # writes architecture.png
 
 | Module | Package | Input | Output | Methodology |
 |---|---|---|---|---|
-| M1 CUR Ingester | `internal/ingest/cur` | Path to CUR Parquet or CSV file | `[]CostRecord` | Columnar read via Apache Arrow; schema-version assertion; streaming to bound memory |
+| M1 CUR Ingester | `internal/ingest/cur` | Path to CUR Parquet or CSV file | `[]CostRecord` | Columnar Parquet read via pure-Go parquet-go (CUR 2.0 names) and CSV read accepting CUR 1.0 and 2.0 headers; batched reads to bound memory |
 | M2 CloudTrail Ingester | `internal/ingest/cloudtrail` | Path to CloudTrail JSON files | `[]AuditEvent` | Streaming JSON decoder; event-name and principal extraction |
 | M3 Terraform Ingester | `internal/ingest/tfstate` | `terraform.tfstate`, `*.tf` files | `[]Resource` | State-file unmarshalling plus HCL abstract syntax tree walk |
 | M3b Live Collector | `internal/ingest/live` | Read-only IAM role ARN | `[]Resource` | AWS SDK v2 paginated `Describe*` and `ce:Get*` calls |
-| M4 Normalizer and Store | `internal/store` | Heterogeneous records from M1 to M3b | Canonical relational schema | Type coercion, tag flattening, persistence into embedded DuckDB |
+| M4 Normalizer and Store | `internal/store` | Heterogeneous records from M1 to M3b | Canonical relational schema | Type coercion, tag flattening, persistence into embedded pure-Go SQLite (DuckDB deferred, see RAID I-01) |
 | M5 Cost Analyzer | `internal/analyze/cost` | Cost records plus resource inventory | `[]Finding{savings, confidence}` | 15+ rule-based waste detectors; STL decomposition with z-score and Isolation Forest for anomalies |
 | M6 Security Analyzer | `internal/analyze/security` | Resources plus audit events | `[]Finding{severity, control_id}` | 20+ AST rules mapped to CIS AWS Foundations Benchmark, PCI-DSS, GDPR |
 | M7 Joint Prioritizer | `internal/prioritize` | Unified `[]Finding` | Ranked remediation backlog | Min-max normalization then weighted scoring, `S(r) = a*savings + b*risk_reduction - c*blast_radius` |
@@ -71,7 +71,7 @@ automatically.
 CUR + CloudTrail + tfstate + live APIs     (L0/L1: M1, M2, M3, M3b)
          |
          v
-     Store, DuckDB                         (L2: M4)
+     Store, SQLite (pure Go)               (L2: M4)
          |
          v
   Cost + Security analyzers  ->  Findings  (L3: M5, M6)
