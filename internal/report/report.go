@@ -18,6 +18,7 @@ var ErrNotImplemented = errors.New("report: not implemented until Week 6 (v0.6.0
 // Format is an output report format.
 type Format string
 
+// Supported report formats.
 const (
 	FormatMarkdown Format = "markdown"
 	FormatHTML     Format = "html"

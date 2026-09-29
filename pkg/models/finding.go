@@ -6,6 +6,7 @@ import "time"
 // Severity of a security finding.
 type Severity string
 
+// Severity levels, lowest to highest.
 const (
 	SeverityInfo     Severity = "info"
 	SeverityLow      Severity = "low"
@@ -17,6 +18,7 @@ const (
 // FindingKind distinguishes cost-waste findings from security-posture findings.
 type FindingKind string
 
+// Finding kinds.
 const (
 	KindCost     FindingKind = "cost"
 	KindSecurity FindingKind = "security"
