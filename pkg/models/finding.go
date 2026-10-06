@@ -48,12 +48,32 @@ type ResourceRef struct {
 	ResourceID string            `json:"resource_id"`
 	Region     string            `json:"region,omitempty"`
 	Tags       map[string]string `json:"tags,omitempty"`
+	// TerraformAddress is the resource address in Terraform state, e.g.
+	// "aws_instance.legacy_reporting". Empty when the resource is not managed
+	// by Terraform (for example, evidence that comes only from CloudTrail).
+	TerraformAddress string `json:"terraform_address,omitempty"`
 }
+
+// RemediationAction says what kind of change resolves a finding. Only
+// ActionModify findings are eligible for an LLM-generated Terraform patch:
+// deletions and investigations are left to a human by design.
+type RemediationAction string
+
+// Remediation actions.
+const (
+	ActionModify      RemediationAction = "modify"      // change arguments of one resource
+	ActionDelete      RemediationAction = "delete"      // remove the resource
+	ActionInvestigate RemediationAction = "investigate" // human analysis first (e.g. a cost anomaly)
+)
 
 // Remediation is a proposed fix, optionally including an LLM-generated Terraform patch.
 type Remediation struct {
-	Summary          string   `json:"summary"`
-	TerraformPatch   string   `json:"terraform_patch,omitempty"` // unified diff
-	VerifierPassed   bool     `json:"verifier_passed"`
-	VerifierMessages []string `json:"verifier_messages,omitempty"`
+	Summary          string            `json:"summary"`
+	Action           RemediationAction `json:"action,omitempty"`
+	TerraformPatch   string            `json:"terraform_patch,omitempty"` // unified diff
+	VerifierPassed   bool              `json:"verifier_passed"`
+	VerifierMessages []string          `json:"verifier_messages,omitempty"`
+	// Attempts is how many generate-then-verify rounds were used (0 when no
+	// patch was requested).
+	Attempts int `json:"attempts,omitempty"`
 }

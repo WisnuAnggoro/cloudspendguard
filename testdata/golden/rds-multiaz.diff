@@ -1,0 +1,11 @@
+--- a/aws_db_instance_analytics_staging.tf
++++ b/aws_db_instance_analytics_staging.tf
+@@ -4,7 +4,7 @@
+   engine_version      = "16.4"
+   identifier          = "analytics-staging"
+   instance_class      = "db.r5.2xlarge"
+-  multi_az            = true
++  multi_az            = false
+   publicly_accessible = true
+   region              = "eu-west-1"
+   storage_encrypted   = true

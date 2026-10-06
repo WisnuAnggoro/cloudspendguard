@@ -47,6 +47,7 @@ func (d PublicS3Bucket) Detect(_ context.Context, in Input) ([]models.Finding, e
 				ev.add(bucket, fmt.Sprintf("Terraform %s sets acl = %q", r.Address, r.Attr("acl")))
 			}
 		case "aws_s3_bucket_public_access_block":
+			ev.set(bucket, "address", r.Address)
 			var off []string
 			for _, k := range []string{"block_public_acls", "block_public_policy", "ignore_public_acls", "restrict_public_buckets"} {
 				if v, ok := r.Bool(k); ok && !v {
@@ -91,6 +92,7 @@ func (d PublicS3Bucket) Detect(_ context.Context, in Input) ([]models.Finding, e
 			Description: strings.Join(ev.reasons[bucket], "; ") + ".",
 			Resource: models.ResourceRef{
 				Provider: "aws", Service: "s3", ResourceID: bucket, Region: ev.meta[bucket]["region"],
+				TerraformAddress: ev.meta[bucket]["address"],
 			},
 			Severity:           models.SeverityCritical,
 			RiskReductionScore: 90,
@@ -100,6 +102,7 @@ func (d PublicS3Bucket) Detect(_ context.Context, in Input) ([]models.Finding, e
 			ComplianceControls: d.ComplianceControls(),
 			SuggestedRemediation: &models.Remediation{
 				Summary: "Set all four aws_s3_bucket_public_access_block arguments to true and remove public ACL grants; serve public content through CloudFront with origin access control.",
+				Action:  models.ActionModify,
 			},
 			DetectedAt: in.Now,
 		})

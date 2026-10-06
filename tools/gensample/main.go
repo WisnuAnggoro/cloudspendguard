@@ -2,9 +2,12 @@
 // tests, `make demo`, and the Unit 4 system demonstration video.
 //
 // The data describes one fictional AWS account (111122223333) for September
-// 2026. It deliberately contains the four patterns the v0.2.0 rules detect:
-// an unattached 500 GiB gp3 volume, an idle Elastic IP, a public S3 bucket,
-// and an IAM policy granting "*:*". Every other resource is a clean negative.
+// 2026. v0.2.0 planted four patterns: an unattached 500 GiB gp3 volume, an
+// idle Elastic IP, a public S3 bucket, and an IAM policy granting "*:*".
+// v0.3.0 adds a two-day GPU spike from an instance Terraform does not know
+// about (19 and 20 September, the cost-anomaly target), a Lambda series with
+// a weekday/weekend pattern that must NOT be flagged, an idle NAT gateway
+// (hours billed, no data processed), and an oversized staging RDS instance.
 //
 // Usage: go run ./tools/gensample -out testdata
 package main
@@ -30,19 +33,26 @@ type lineItem struct {
 	service, resource, usage, region string
 	dailyCost                        float64
 	tags                             map[string]string
+	weekendCost                      float64 // when > 0, used on Saturdays and Sundays
+	onlyDays                         []int   // when set, the item bills only on these day offsets
 }
 
 var items = []lineItem{
-	{"AmazonEC2", "i-0a1b2c3d4e5f60001", "EUW1-BoxUsage:m5.large", "eu-west-1", 2.304, map[string]string{"team": "booking", "env": "prod"}},
-	{"AmazonEC2", "vol-0a1b2c3d4e5f60002", "EUW1-EBS:VolumeUsage.gp3", "eu-west-1", 0.2667, map[string]string{"team": "booking", "env": "prod"}},
-	{"AmazonEC2", "vol-0a1b2c3d4e5f60099", "EUW1-EBS:VolumeUsage.gp3", "eu-west-1", 1.3333, map[string]string{"team": "data", "env": "staging"}},
-	{"AmazonEC2", "eipalloc-0a1b2c3d4e5f60010", "EUW1-PublicIPv4:InUseAddress", "eu-west-1", 0.12, map[string]string{"team": "booking"}},
-	{"AmazonEC2", "eipalloc-0a1b2c3d4e5f60077", "EUW1-PublicIPv4:IdleAddress", "eu-west-1", 0.12, map[string]string{"team": "legacy"}},
-	{"AmazonEC2", "nat-0a1b2c3d4e5f60020", "EUW1-NatGateway-Hours", "eu-west-1", 1.08, map[string]string{"team": "platform"}},
-	{"AmazonRDS", "arn:aws:rds:eu-west-1:111122223333:db:bookings", "EUW1-InstanceUsage:db.t3.medium", "eu-west-1", 1.632, map[string]string{"team": "booking", "env": "prod"}},
-	{"AmazonS3", "tui-demo-booking-exports", "EUW1-TimedStorage-ByteHrs", "eu-west-1", 0.35, map[string]string{"team": "data"}},
-	{"AmazonS3", "tui-demo-access-logs", "EUW1-TimedStorage-ByteHrs", "eu-west-1", 0.12, map[string]string{"team": "platform"}},
-	{"AWSCloudTrail", "", "EUW1-PaidEventsRecorded", "eu-west-1", 0.05, nil},
+	{"AmazonEC2", "i-0a1b2c3d4e5f60001", "EUW1-BoxUsage:m5.large", "eu-west-1", 2.304, map[string]string{"team": "booking", "env": "prod"}, 0, nil},
+	{"AmazonEC2", "vol-0a1b2c3d4e5f60002", "EUW1-EBS:VolumeUsage.gp3", "eu-west-1", 0.2667, map[string]string{"team": "booking", "env": "prod"}, 0, nil},
+	{"AmazonEC2", "vol-0a1b2c3d4e5f60099", "EUW1-EBS:VolumeUsage.gp3", "eu-west-1", 1.3333, map[string]string{"team": "data", "env": "staging"}, 0, nil},
+	{"AmazonEC2", "eipalloc-0a1b2c3d4e5f60010", "EUW1-PublicIPv4:InUseAddress", "eu-west-1", 0.12, map[string]string{"team": "booking"}, 0, nil},
+	{"AmazonEC2", "eipalloc-0a1b2c3d4e5f60077", "EUW1-PublicIPv4:IdleAddress", "eu-west-1", 0.12, map[string]string{"team": "legacy"}, 0, nil},
+	{"AmazonEC2", "nat-0a1b2c3d4e5f60020", "EUW1-NatGateway-Hours", "eu-west-1", 1.08, map[string]string{"team": "platform"}, 0, nil},
+	{"AmazonRDS", "arn:aws:rds:eu-west-1:111122223333:db:bookings", "EUW1-InstanceUsage:db.t3.medium", "eu-west-1", 1.632, map[string]string{"team": "booking", "env": "prod"}, 0, nil},
+	{"AmazonS3", "tui-demo-booking-exports", "EUW1-TimedStorage-ByteHrs", "eu-west-1", 0.35, map[string]string{"team": "data"}, 0, nil},
+	{"AmazonS3", "tui-demo-access-logs", "EUW1-TimedStorage-ByteHrs", "eu-west-1", 0.12, map[string]string{"team": "platform"}, 0, nil},
+	{"AWSCloudTrail", "", "EUW1-PaidEventsRecorded", "eu-west-1", 0.05, nil, 0, nil},
+	{"AmazonRDS", "arn:aws:rds:eu-west-1:111122223333:db:analytics-staging", "EUW1-Multi-AZUsage:db.r5.2xlarge", "eu-west-1", 23.04, map[string]string{"team": "data", "env": "staging"}, 0, nil},
+	{"AWSLambda", "arn:aws:lambda:eu-west-1:111122223333:function:booking-pricing", "EUW1-Lambda-GB-Second", "eu-west-1", 4.20, map[string]string{"team": "booking", "env": "prod"}, 1.40, nil},
+	{"AmazonEC2", "i-0a1b2c3d4e5f60042", "EUW1-BoxUsage:m4.xlarge", "eu-west-1", 5.328, map[string]string{"team": "reporting", "env": "staging"}, 0, nil},
+	// Crypto-mining style spike: an unknown GPU instance, 18 and 19 days after the 1st.
+	{"AmazonEC2", "i-0a1b2c3d4e5f60666", "EUW1-BoxUsage:p3.2xlarge", "eu-west-1", 73.44, map[string]string{"team": "booking"}, 0, []int{18, 19}},
 }
 
 func main() {
@@ -63,13 +73,20 @@ func curRows() []cur.ParquetRow {
 	for day := 0; day < 30; day++ {
 		s := start.AddDate(0, 0, day)
 		for _, it := range items {
+			if len(it.onlyDays) > 0 && !containsDay(it.onlyDays, day) {
+				continue
+			}
+			cost := it.dailyCost
+			if wd := s.Weekday(); it.weekendCost > 0 && (wd == time.Saturday || wd == time.Sunday) {
+				cost = it.weekendCost
+			}
 			rows = append(rows, cur.ParquetRow{
 				UsageAccountID: account,
 				ProductCode:    it.service,
 				ResourceID:     it.resource,
 				UsageType:      it.usage,
 				RegionCode:     it.region,
-				UnblendedCost:  it.dailyCost,
+				UnblendedCost:  cost,
 				UsageStart:     s,
 				UsageEnd:       s.Add(24 * time.Hour),
 				ResourceTags:   cur2Tags(it.tags),
@@ -134,4 +151,13 @@ func cur2Tags(tags map[string]string) map[string]string {
 		out["user_"+k] = v
 	}
 	return out
+}
+
+func containsDay(days []int, d int) bool {
+	for _, x := range days {
+		if x == d {
+			return true
+		}
+	}
+	return false
 }

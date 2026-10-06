@@ -4,12 +4,11 @@
 // Terraform) and map every finding to a CIS AWS Foundations Benchmark
 // v3.0.0 control.
 //
-// Unit 4 (Week 4, v0.2.0-analyze-alpha) ships the first two rules:
-//
-//   - SEC-S3-PUBLIC-001    S3 bucket exposed to the public (CIS 2.1.4)
-//   - SEC-IAM-ADMIN-001    IAM policy granting "*:*" (CIS 1.16)
-//
-// The remaining rules follow in Unit 5.
+// Unit 4 (v0.2.0-analyze-alpha) shipped SEC-S3-PUBLIC-001 (CIS 2.1.4) and
+// SEC-IAM-ADMIN-001 (CIS 1.16). Unit 5 (v0.3.0-algo) completes the library
+// to 20 rules (FR5), the rest declared in rules.go. The same rule set is
+// re-run by the patch verifier (internal/llm/verify), so a fix proposed by
+// the language model is judged by the logic that found the problem.
 package security
 
 import (
@@ -42,10 +41,11 @@ type Detector interface {
 
 // Registry returns the built-in detector set in a stable order.
 func Registry() []Detector {
-	return []Detector{
+	ds := []Detector{
 		PublicS3Bucket{},
 		IAMFullAdmin{},
 	}
+	return append(ds, libraryRules()...)
 }
 
 // Analyze runs every registered detector and aggregates the findings.

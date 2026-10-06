@@ -3,20 +3,20 @@
 // billed) with the Terraform resource inventory (what exists and how it is
 // wired) and emits [models.Finding] values carrying a projected monthly saving.
 //
-// Unit 4 (Week 4, v0.2.0-analyze-alpha) ships the first two rules:
-//
-//   - COST-EBS-IDLE-001      EBS volume not attached to any instance
-//   - COST-EIP-UNATTACHED-001 Elastic IP not associated with any resource
-//
-// The remaining rules (oversized RDS, idle NAT gateway, and so on) and the
-// anomaly-detection pass follow in Unit 5.
+// Unit 4 (v0.2.0-analyze-alpha) shipped the first two rules, idle EBS and
+// unattached EIP. Unit 5 (v0.3.0-algo) completes the library to 15 rules
+// (FR4): the multi-signal anomaly detector in internal/analyze/anomaly, a
+// CUR-only idle NAT gateway rule, and eleven declarative rules in rules.go.
 package cost
 
 import (
 	"context"
+	"fmt"
 	"sort"
+	"strings"
 	"time"
 
+	"github.com/wisnuanggoro/cloudspendguard/internal/analyze/anomaly"
 	"github.com/wisnuanggoro/cloudspendguard/internal/ingest/cur"
 	"github.com/wisnuanggoro/cloudspendguard/internal/ingest/tfstate"
 	"github.com/wisnuanggoro/cloudspendguard/pkg/models"
@@ -43,10 +43,13 @@ type Detector interface {
 
 // Registry returns the built-in detector set in a stable order.
 func Registry() []Detector {
-	return []Detector{
+	ds := []Detector{
 		IdleEBSVolume{},
 		UnattachedEIP{},
+		IdleNATGateway{},
+		anomalyDetector{},
 	}
+	return append(ds, libraryRules()...)
 }
 
 // Analyze runs every registered detector and aggregates the findings,
@@ -66,6 +69,7 @@ func Analyze(ctx context.Context, in Input) ([]models.Finding, error) {
 		}
 		findings = append(findings, fs...)
 	}
+	findings = compoundOverlaps(findings, in)
 	sort.SliceStable(findings, func(i, j int) bool {
 		if findings[i].RuleID != findings[j].RuleID {
 			return findings[i].RuleID < findings[j].RuleID
@@ -73,6 +77,53 @@ func Analyze(ctx context.Context, in Input) ([]models.Finding, error) {
 		return findings[i].Resource.ResourceID < findings[j].Resource.ResourceID
 	})
 	return findings, nil
+}
+
+// compoundOverlaps stops two rules from claiming the same dollars. When
+// several findings target one resource whose monthly cost C is known from
+// CUR, they are applied largest first and each later saving is taken from
+// what remains: s_i' = s_i * prod_{j<i} (1 - s_j / C). Without this, the
+// Multi-AZ and right-sizing rules each claimed 50% of one RDS instance and
+// the backlog promised 100% savings on a database that keeps running.
+func compoundOverlaps(fs []models.Finding, in Input) []models.Finding {
+	byRes := map[string][]int{}
+	for i, f := range fs {
+		if f.MonthlySavingsUSD > 0 && f.Resource.TerraformAddress != "" {
+			byRes[f.Resource.TerraformAddress] = append(byRes[f.Resource.TerraformAddress], i)
+		}
+	}
+	for addr, idx := range byRes {
+		if len(idx) < 2 {
+			continue
+		}
+		var ids []string
+		for _, r := range in.Resources {
+			if r.Address == addr {
+				ids = []string{r.Attr("id"), r.Attr("arn"), r.Attr("identifier")}
+			}
+		}
+		monthly, ok := observedMonthlyCost(in.CUR, ids...)
+		if !ok || monthly <= 0 {
+			continue
+		}
+		sort.SliceStable(idx, func(a, b int) bool { return fs[idx[a]].MonthlySavingsUSD > fs[idx[b]].MonthlySavingsUSD })
+		remaining := 1.0
+		for k, i := range idx {
+			share := fs[i].MonthlySavingsUSD / monthly
+			if k > 0 {
+				alone := fs[i].MonthlySavingsUSD
+				fs[i].MonthlySavingsUSD = round2(alone * remaining)
+				d := fs[i].Description
+				if cut := strings.Index(d, " Fixing it saves"); cut >= 0 {
+					d = d[:cut]
+				}
+				fs[i].Description = fmt.Sprintf("%s Fixing it saves USD %.2f/month after %s is applied to the same resource (USD %.2f on its own).",
+					d, fs[i].MonthlySavingsUSD, fs[idx[0]].RuleID, alone)
+			}
+			remaining *= 1 - min(share, 1)
+		}
+	}
+	return fs
 }
 
 // observedMonthlyCost projects the billed cost for resource IDs matching any
@@ -111,3 +162,12 @@ func observedMonthlyCost(records []cur.Record, ids ...string) (monthly float64, 
 }
 
 func round2(v float64) float64 { return float64(int64(v*100+0.5)) / 100 }
+
+// anomalyDetector adapts the STL + Isolation Forest pass to Detector.
+type anomalyDetector struct{}
+
+func (anomalyDetector) RuleID() string { return anomaly.RuleID }
+
+func (anomalyDetector) Detect(ctx context.Context, in Input) ([]models.Finding, error) {
+	return anomaly.Detector{}.Detect(ctx, in.CUR, in.Now)
+}

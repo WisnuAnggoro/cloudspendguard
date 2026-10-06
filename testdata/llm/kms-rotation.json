@@ -1,0 +1,9 @@
+{
+  "finding_id": "SEC-KMS-ROTATION-001:1234abcd-12ab-34cd-56ef-1234567890ab",
+  "backend": "ollama/qwen2.5-coder:1.5b",
+  "recorded_at": "2026-10-03T12:14:16Z",
+  "responses": [
+    "```hcl\nresource \"aws_kms_key\" \"exports\" {\n  customer_master_key_spec = \"SYMMETRIC_DEFAULT\"\n  description              = \"booking exports\"\n  enable_key_rotation      = true\n}\n```"
+  ],
+  "description": "KMS key without rotation; enable_key_rotation set to true; approved."
+}

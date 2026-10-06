@@ -45,6 +45,7 @@ func (d IAMFullAdmin) Detect(_ context.Context, in Input) ([]models.Finding, err
 			id = r.Address
 		}
 		ev.add(id, fmt.Sprintf("Terraform %s allows Action \"*\" on Resource \"*\"", r.Address))
+		ev.set(id, "address", r.Address)
 	}
 
 	for _, e := range in.Events {
@@ -71,7 +72,7 @@ func (d IAMFullAdmin) Detect(_ context.Context, in Input) ([]models.Finding, err
 			RuleID:             d.RuleID(),
 			Title:              "IAM policy grants full administrative access (*:*)",
 			Description:        strings.Join(ev.reasons[id], "; ") + ".",
-			Resource:           models.ResourceRef{Provider: "aws", Service: "iam", ResourceID: id},
+			Resource:           models.ResourceRef{Provider: "aws", Service: "iam", ResourceID: id, TerraformAddress: ev.meta[id]["address"]},
 			Severity:           models.SeverityHigh,
 			RiskReductionScore: 85,
 			// Narrowing an admin policy can break automation that silently
@@ -80,6 +81,7 @@ func (d IAMFullAdmin) Detect(_ context.Context, in Input) ([]models.Finding, err
 			ComplianceControls: d.ComplianceControls(),
 			SuggestedRemediation: &models.Remediation{
 				Summary: "Replace the wildcard statement with the actions the principal actually uses (IAM Access Analyzer policy generation from CloudTrail helps), and require MFA for any remaining break-glass admin role.",
+				Action:  models.ActionModify,
 			},
 			DetectedAt: in.Now,
 		})

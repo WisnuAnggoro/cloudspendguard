@@ -14,7 +14,7 @@ import (
 
 // version is overridden at release time with
 // -ldflags "-X main.version=$(git describe --tags)".
-var version = "0.2.0-analyze-alpha"
+var version = "0.3.0-algo"
 
 func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
@@ -43,6 +43,10 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 		err = cmdQuery(ctx, args[1:], stdout)
 	case "analyze":
 		err = cmdAnalyze(ctx, args[1:], stdout)
+	case "anomalies":
+		err = cmdAnomalies(ctx, args[1:], stdout)
+	case "remediate":
+		err = cmdRemediate(ctx, args[1:], stdout)
 	case "report", "run":
 		fmt.Fprintf(stderr, "csg %s: planned for Unit 6 (v0.6.0-beta); use `csg analyze` for now\n", args[0])
 		return 2
@@ -74,9 +78,11 @@ Usage:
 Commands:
   ingest cur <path>...         Load AWS CUR exports (.parquet, .csv, .csv.gz, or a directory)
   ingest cloudtrail <path>...  Load CloudTrail JSON logs (.json, .json.gz, or a directory)
-  ingest tfstate <path>        Load a terraform.tfstate file
+  ingest tfstate <path>        Load a terraform.tfstate file or a directory of *.tf files
   query "<SQL>"                Run a read-only SQL query (tables: cur, cloudtrail_events, tf_resources)
-  analyze                      Run cost and security rules and print a prioritized backlog
+  analyze                      Run 15 cost and 20 security rules and print a prioritized backlog
+  anomalies                    Show the STL + Isolation Forest cost-anomaly scores per series
+  remediate <finding-id>       Generate a Terraform patch with an LLM and verify it (never applied)
   version                      Print version
   help                         Print this help
 
@@ -85,14 +91,27 @@ Common flags:
 
 analyze flags:
   --profile <name>   Weighting profile: devops (default), finops, security, cxo
+  --weights a,b,g    Explicit alpha,beta,gamma, overrides --profile (e.g. 0.6,0.3,0.1)
   --format <fmt>     Output format: table (default) or json
+  --top <n>          Show only the first n backlog items
+
+anomalies flags:
+  --series <key>     Print every day of one series (e.g. AmazonEC2/booking)
+
+remediate flags:
+  --llm-provider <p> ollama (default, local), openai (needs --allow-remote), or replay
+  --model <name>     Model (default llama3.1:8b for ollama)
+  --fixture <file>   Recorded responses for --llm-provider replay
+  --record <file>    Save the live model's responses as a fixture
 
 Examples:
   csg ingest cur ./testdata/sample-cur.parquet
   csg ingest cloudtrail ./testdata/sample-events.json
   csg ingest tfstate ./testdata/terraform.tfstate
   csg query "SELECT service, ROUND(SUM(cost), 2) AS cost FROM cur GROUP BY 1 ORDER BY 2 DESC"
-  csg analyze --profile finops
+  csg analyze --profile finops --top 10
+  csg anomalies --series AmazonEC2/booking
+  csg remediate SEC-EC2-IMDSV2-001:i-0a1b2c3d4e5f60042 --llm-provider replay --fixture testdata/llm/imdsv2-approved.json
 
 Docs: https://github.com/wisnuanggoro/cloudspendguard
 `)
