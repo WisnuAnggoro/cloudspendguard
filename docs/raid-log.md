@@ -57,7 +57,7 @@ A single register tracking **Risks, Assumptions, Issues, and Dependencies** for 
 
 | ID | Type | Description | Impact if unavailable | Mitigation / alternative | Status | Last reviewed |
 |---|---|---|---|---|---|---|
-| D-01 | D | Go 1.23+ installed on local dev machine | Blocks all engineering | Already installed and verified | Closed | 2026-09-06 |
+| D-01 | D | Go 1.25+ installed on local dev machine (raised from 1.23 on 2026-10-06 for the golang.org/x/text fix GO-2026-5970) | Blocks all engineering | Already installed and verified | Closed | 2026-09-06 |
 | D-02 | D | Pure-Go Parquet library for CUR ingestion. Planned: [Apache Arrow Go v14+](https://pkg.go.dev/github.com/apache/arrow/go/v14). Used: [parquet-go](https://github.com/parquet-go/parquet-go), which is lighter and maps rows straight onto Go structs | Blocks CUR ingestion | CSV ingestion path (CUR 1.0 and 2.0 headers) implemented alongside Parquet | Closed | 2026-09-25 |
 | D-03 | D | [DuckDB Go driver](https://github.com/marcboeker/go-duckdb) for local time-series store | Blocks Store module | Fallback taken: pure-Go SQLite ([modernc.org/sqlite](https://pkg.go.dev/modernc.org/sqlite)) via `database/sql`. See I-01 | Closed | 2026-09-25 |
 | D-04 | D | Ollama runtime installed locally with a suitable model | Blocks default LLM path | Verified with Ollama 0.35.1 and `qwen2.5-coder:1.5b` on a 2-CPU, 7 GB machine (about 20 seconds per answer). CI and the demo replay recorded fixtures, so neither depends on Ollama. Optional OpenAI-compatible fallback (opt-in, budgeted) | Closed | 2026-10-03 |

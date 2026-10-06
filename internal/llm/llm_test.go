@@ -138,7 +138,9 @@ func TestGolden(t *testing.T) {
 			if err != nil {
 				t.Fatalf("%v (run with -update to create it)", err)
 			}
-			if got != string(want) {
+			// A Windows checkout with core.autocrlf may turn LF into CRLF;
+			// .gitattributes prevents that, and this keeps old clones working.
+			if got != strings.ReplaceAll(string(want), "\r\n", "\n") {
 				t.Fatalf("output differs from %s:\n%s", golden, got)
 			}
 		})

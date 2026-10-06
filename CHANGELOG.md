@@ -66,6 +66,13 @@ joint prioritizer (M7), and the LLM remediation engine with its verifier
 - Unified diff printed `+new` before `-old`.
 - Flat billing series produced z-scores in the millions from floating-point
   noise; dispersion is now floored at one cent.
+- Security: `golang.org/x/text` v0.11.0 to v0.39.0 (GO-2026-5970, infinite
+  loop on invalid input, reachable through HCL parsing) and
+  `github.com/klauspost/compress` v1.17.9 to v1.18.7 (GO-2026-5841). The fix
+  requires Go 1.25, so the minimum Go version is now 1.25 and CI builds on
+  Go 1.26 with golangci-lint v2.14.0.
+- Golden-file tests failed on Windows because Git converted fixtures to CRLF;
+  `.gitattributes` now keeps them byte-identical and the comparison ignores CRLF.
 
 ### Not yet
 
