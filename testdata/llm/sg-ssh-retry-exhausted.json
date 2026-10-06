@@ -1,0 +1,11 @@
+{
+  "finding_id": "SEC-SG-ADMIN-IPV4-001:sg-0a1b2c3d4e5f60022",
+  "backend": "ollama/qwen2.5-coder:1.5b",
+  "recorded_at": "2026-10-03T12:15:22Z",
+  "responses": [
+    "```hcl\nresource \"aws_security_group\" \"bastion\" {\n  name = \"bastion-ssh\"\n  tags = {\n    team = \"legacy\"\n  }\n  vpc_id = \"vpc-0a1b2c3d4e5f60100\"\n  egress {\n    cidr_blocks = [\"0.0.0.0/0\"]\n    from_port   = 0\n    protocol    = \"-1\"\n    to_port     = 0\n  }\n  ingress {\n    cidr_blocks = [\"[[CORPORATE_CIDR]]\"]\n    description = \"ssh from anywhere\"\n    from_port   = 22\n    protocol    = \"tcp\"\n    to_port     = 22\n  }\n}\n```",
+    "```hcl\nresource \"aws_security_group\" \"bastion\" {\n  name = \"bastion-ssh\"\n  tags = {\n    team = \"legacy\"\n  }\n  vpc_id = \"vpc-0a1b2c3d4e5f60100\"\n  egress {\n    cidr_blocks = [\"0.0.0.0/0\"]\n    from_port   = 0\n    protocol    = \"-1\"\n    to_port     = 0\n  }\n  ingress {\n    cidr_blocks = [\"[[CORPORATE_CIDR]]\"]\n    description = \"ssh from anywhere\"\n    from_port   = 22\n    protocol    = \"tcp\"\n    to_port     = 22\n  }\n}\n```",
+    "```hcl\nresource \"aws_security_group\" \"bastion\" {\n  name = \"bastion-ssh\"\n  tags = {\n    team = \"legacy\"\n  }\n  vpc_id = \"vpc-0a1b2c3d4e5f60100\"\n  egress {\n    cidr_blocks = [\"0.0.0.0/0\"]\n    from_port   = 0\n    protocol    = \"-1\"\n    to_port     = 0\n  }\n  ingress {\n    cidr_blocks = [\"[[CORPORATE_CIDR]]\"]\n    description = \"ssh from anywhere\"\n    from_port   = 22\n    protocol    = \"tcp\"\n    to_port     = 22\n  }\n}\n```"
+  ],
+  "description": "SSH from 0.0.0.0/0; the model invents [[CORPORATE_CIDR]] three times; the verifier rejects each and the finding falls back to a manual fix."
+}

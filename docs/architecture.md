@@ -46,7 +46,7 @@ python3 docs/design/architecture_diagram.py   # writes architecture.png
 | M4 Normalizer and Store | `internal/store` | Heterogeneous records from M1 to M3b | Canonical relational schema | Type coercion, tag flattening, persistence into embedded pure-Go SQLite (DuckDB deferred, see RAID I-01) |
 | M5 Cost Analyzer | `internal/analyze/cost` | Cost records plus resource inventory | `[]Finding{savings, confidence}` | 15+ rule-based waste detectors; STL decomposition with z-score and Isolation Forest for anomalies |
 | M6 Security Analyzer | `internal/analyze/security` | Resources plus audit events | `[]Finding{severity, control_id}` | 20+ AST rules mapped to CIS AWS Foundations Benchmark, PCI-DSS, GDPR |
-| M7 Joint Prioritizer | `internal/prioritize` | Unified `[]Finding` | Ranked remediation backlog | Min-max normalization then weighted scoring, `S(r) = a*savings + b*risk_reduction - c*blast_radius` |
+| M7 Joint Prioritizer | `internal/prioritize` | Unified `[]Finding` | Ranked remediation backlog | Log-scaled savings (`log1p(s)/log1p(max)`), risk and blast divided by 100, then `S(r) = a*savings + b*risk_reduction - c*blast_radius`; ties broken by severity, then ID |
 | M8 LLM Remediation Engine | `internal/llm` | Ranked finding plus rule context | Candidate Terraform patch as a diff | Redaction of ARNs, account identifiers, IP addresses; hardened system prompt; local Ollama by default |
 | M9 Verifier | `internal/llm/verify` | Candidate patch | Approved patch or rejection reason | Re-parse of patched HCL and full re-execution of M6 rules; rejection on any new finding |
 | M10 Reporter | `internal/report` | Approved backlog plus verified patches | Markdown, HTML, JSON, SARIF | Template rendering; SARIF 2.1.0 serialization for code-scanning platforms |
@@ -64,6 +64,23 @@ permitted to approve its own output. M9 is an independent gate that re-runs the 
 in M6, meaning a hallucinated patch is caught by the identical logic that found the original problem.
 M9 retries at most three times, then reports the finding without a patch. No patch is ever applied
 automatically.
+
+### Implementation notes (v0.3.0-algo)
+
+- M5 anomaly pipeline: daily series per service and team, robust STL with
+  period 7, modified z-score on residuals, and an Isolation Forest over
+  level, residual, and day-over-day change. A day is anomalous only when both
+  signals agree and the excess is material (USD 1 and 20% of expected).
+  Adjacent anomalous days merge into one finding.
+- M5 overlap handling: several savings on one resource are compounded,
+  largest first, so the total never exceeds the observed monthly cost.
+- M8 order of operations: sanitize, render the resource as HCL, prompt with a
+  nonce-fenced data block, extract the first fenced block, restore
+  placeholders, verify, retry with the rejection reasons (at most 3).
+- M9 order of checks, cheapest first: HCL syntax, one resource with the same
+  address, no provider/module/provisioner/connection blocks, no unevaluated
+  expressions, no dropped arguments, no invented placeholders or invalid
+  CIDRs, then the full before/after re-scan with all 35 rules.
 
 ## Data flow
 

@@ -1,0 +1,11 @@
+--- a/aws_instance_legacy_reporting.tf
++++ b/aws_instance_legacy_reporting.tf
+@@ -14,7 +14,7 @@
+   metadata_options {
+     http_endpoint               = "enabled"
+     http_put_response_hop_limit = 1
+-    http_tokens                 = "optional"
++    http_tokens                 = "required"
+   }
+   root_block_device {
+     encrypted   = true

@@ -1,0 +1,11 @@
+--- a/aws_db_instance_analytics_staging.tf
++++ b/aws_db_instance_analytics_staging.tf
+@@ -5,7 +5,7 @@
+   identifier          = "analytics-staging"
+   instance_class      = "db.r5.2xlarge"
+   multi_az            = true
+-  publicly_accessible = true
++  publicly_accessible = false
+   region              = "eu-west-1"
+   storage_encrypted   = true
+   storage_type        = "gp3"

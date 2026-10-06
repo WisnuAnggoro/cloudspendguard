@@ -32,10 +32,35 @@ When a unit milestone is reached, `develop` merges into `main` and is tagged.
 |---|---|
 | `v0.1.0-ingest` | Ingestion layer complete (M1, M2, M3) |
 | `v0.2.0-analyze-alpha` | Cost and security analyzers producing findings (M5, M6) |
-| `v0.3.0-algo` | Joint prioritizer implemented (M7) |
-| `v0.6.0-beta` | Remediation and verification loop working end to end (M8, M9) |
+| `v0.3.0-algo` | Core logic: rule library (M5, M6), anomaly detector, joint prioritizer (M7), and the remediation and verification loop (M8, M9), pulled forward from `v0.6.0-beta` |
+| `v0.6.0-beta` | Integration, live collector (M3b), and evaluation against real data |
 | `v0.9.0-rc1` | Reporting complete, evaluation run (M10) |
 | `v1.0.0` | Release |
+
+### How a milestone is released (Unit 5 example)
+
+```bash
+# 1. Each workstream on its own short-lived branch, cut from develop
+git switch develop && git pull
+git switch -c feature/unit5-core-algorithms
+# ... commits ...
+git push -u origin feature/unit5-core-algorithms
+gh pr create --base develop --title "feat: v0.3.0-algo core algorithms"
+
+# 2. After CI is green and the PR is merged, promote develop to main
+git switch main && git pull
+git merge --no-ff develop -m "release: v0.3.0-algo"
+git push origin main
+
+# 3. Annotated tag on the merge commit, then a GitHub Release from it
+git tag -a v0.3.0-algo -m "v0.3.0-algo: core algorithms, rule library, verified LLM remediation"
+git push origin v0.3.0-algo
+gh release create v0.3.0-algo --title "v0.3.0-algo: Core algorithms and verified LLM remediation" \
+  --notes-file docs/releases/v0.3.0-algo.md --prerelease
+```
+
+Annotated tags (`-a`) store the author, date, and message, so `git show v0.3.0-algo` explains the
+milestone without opening GitHub. Pre-1.0 releases are marked `--prerelease`.
 
 ## Commit messages
 

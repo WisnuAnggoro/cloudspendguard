@@ -1,0 +1,9 @@
+{
+  "finding_id": "COST-RDS-NONPROD-MULTIAZ-001:analytics-staging",
+  "backend": "ollama/qwen2.5-coder:1.5b",
+  "recorded_at": "2026-10-03T12:14:12Z",
+  "responses": [
+    "```hcl\nresource \"aws_db_instance\" \"analytics_staging\" {\n  allocated_storage   = 200\n  engine              = \"postgres\"\n  engine_version      = \"16.4\"\n  identifier          = \"analytics-staging\"\n  instance_class      = \"db.r5.2xlarge\"\n  multi_az            = false\n  publicly_accessible = true\n  region              = \"eu-west-1\"\n  storage_encrypted   = true\n  storage_type        = \"gp3\"\n  tags = {\n    env  = \"staging\"\n    team = \"data\"\n  }\n}\n```"
+  ],
+  "description": "Multi-AZ on a staging RDS instance; multi_az set to false; approved."
+}

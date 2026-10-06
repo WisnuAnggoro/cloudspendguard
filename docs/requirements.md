@@ -46,6 +46,22 @@ nominally complete yet operationally unusable
 | NFR4 | `CGO_ENABLED=0` static build | Cross-compilation matrix in CI |
 | NFR5 | Embedded sample fixtures | `make run-sample` smoke test |
 
+## Verification status at v0.3.0-algo (Unit 5)
+
+| ID | Status | Test evidence |
+|---|---|---|
+| FR1 | Met | `cur_test.go`: Parquet and CSV agree row by row on 392 line items |
+| FR2 | Local path met; S3 prefix in Unit 6 | `cloudtrail_test.go` |
+| FR3 | Met (state v4 and `*.tf`) | `tfstate_test.go`, `hcl_test.go` (parse and render round trip) |
+| FR4 | Met, 15 rules | `cost/rules_test.go`: registry length 15, positive and negative case per rule, savings asserted |
+| FR5 | Met, 20 rules | `security/rules_test.go`: registry length 20, CIS v3.0.0 control asserted per rule |
+| FR6 | Met | `prioritize_test.go` (100%), `main_test.go` end-to-end backlog of 23 findings |
+| FR7 | Met | `verify_test.go` (13 rejection cases), `llm_test.go` (12 injection payloads, 9 malicious answers, 5 golden fixtures) |
+| FR8 | Unit 6 | JSON output only so far (`csg analyze --format json`) |
+| FR9 | Local-file mode met | `main_test.go` runs with sample data only |
+| NFR2 | Met | Remote provider refused without `--allow-remote`; redaction forced (`TestNewConfig`, `TestSanitizer`) |
+| NFR3 | Met, 97.2% | `make cover-gate` over `internal/analyze`, `internal/prioritize`, `internal/llm` |
+
 ## References
 
 Letaw, L. (2024). *Handbook of software engineering methods*. Oregon State University. https://open.oregonstate.education/setextbook/

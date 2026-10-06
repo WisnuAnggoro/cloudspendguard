@@ -1,8 +1,8 @@
-.PHONY: build build-all test cover cover-gate lint sample-data demo ci clean
+.PHONY: build build-all test cover cover-gate lint sample-data demo golden ci clean
 
 BINARY  := csg
 PKG     := ./...
-VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo 0.2.0-analyze-alpha)
+VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo 0.3.0-algo)
 LDFLAGS := -s -w -X main.version=$(VERSION)
 DEMO_DB := tmp/demo.db
 
@@ -38,7 +38,9 @@ lint:
 sample-data:
 	go run ./tools/gensample -out testdata
 
-# The Unit 4 system demonstration, end to end, against a throwaway database.
+# The Unit 4 and Unit 5 demonstration, end to end, against a throwaway
+# database. The remediation step replays a fixture recorded from a local
+# Ollama model, so it needs no model, no network, and no API key.
 demo: build
 	rm -f $(DEMO_DB)*
 	./bin/$(BINARY) version
@@ -47,6 +49,12 @@ demo: build
 	./bin/$(BINARY) ingest tfstate --db $(DEMO_DB) ./testdata/terraform.tfstate
 	./bin/$(BINARY) query --db $(DEMO_DB) "SELECT service, ROUND(SUM(cost), 2) AS cost FROM cur GROUP BY 1 ORDER BY 2 DESC"
 	./bin/$(BINARY) analyze --db $(DEMO_DB)
+	./bin/$(BINARY) anomalies --db $(DEMO_DB)
+	./bin/$(BINARY) remediate SEC-EC2-IMDSV2-001:i-0a1b2c3d4e5f60042 --db $(DEMO_DB) --llm-provider replay --fixture ./testdata/llm/imdsv2-injection-tag.json
+
+# Rewrite testdata/golden/*.diff after an intended change to the LLM layer.
+golden:
+	go test ./internal/llm -run TestGolden -update
 
 # Run the same gates as GitHub Actions locally (fallback for RAID D-07).
 ci: lint test cover-gate build-all demo

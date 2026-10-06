@@ -15,8 +15,8 @@ func TestParse_Golden(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(res) != 15 {
-		t.Fatalf("want 15 managed resources (data source excluded), got %d", len(res))
+	if len(res) != 22 {
+		t.Fatalf("want 22 managed resources (data source excluded), got %d", len(res))
 	}
 	byAddr := map[string]Resource{}
 	for _, r := range res {
@@ -63,8 +63,8 @@ func TestParse_ModulesAndIndexKeys(t *testing.T) {
 
 func TestParse_Errors(t *testing.T) {
 	dir := t.TempDir()
-	if _, err := NewParser().Parse(context.Background(), dir); !errors.Is(err, ErrHCLNotYetSupported) {
-		t.Fatalf("directory: want ErrHCLNotYetSupported, got %v", err)
+	if _, err := NewParser().Parse(context.Background(), dir); !errors.Is(err, ErrNoResources) {
+		t.Fatalf("empty directory: want ErrNoResources, got %v", err)
 	}
 	if _, err := NewParser().Parse(context.Background(), filepath.Join(dir, "missing")); err == nil {
 		t.Fatal("missing file: expected error")

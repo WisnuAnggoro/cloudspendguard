@@ -1,0 +1,9 @@
+--- a/aws_kms_key_exports.tf
++++ b/aws_kms_key_exports.tf
+@@ -1,5 +1,5 @@
+ resource "aws_kms_key" "exports" {
+   customer_master_key_spec = "SYMMETRIC_DEFAULT"
+   description              = "booking exports"
+-  enable_key_rotation      = false
++  enable_key_rotation      = true
+ }
