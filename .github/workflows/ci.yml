@@ -1,6 +1,6 @@
 name: CI
 
-# Unit 4 (v0.2.0-analyze-alpha): lint, cross-platform test matrix with the
+# Unit 4 and 5 (v0.3.0-algo): lint, cross-platform test matrix with the
 # race detector, coverage upload and gate, static cross-compilation (NFR4),
 # vulnerability scan, and an end-to-end smoke run of the demo commands.
 

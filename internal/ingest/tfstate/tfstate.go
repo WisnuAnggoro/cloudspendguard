@@ -1,23 +1,19 @@
 // Package tfstate parses terraform.tfstate JSON to recover the declared
 // configuration of AWS resources for the analyzers in internal/analyze.
 //
-// Module M3 in docs/architecture.md. The state-file parser is implemented in
-// Unit 4 (Week 4), carrying over the Week 3 ingest milestone. HCL source
-// parsing (*.tf) follows in Unit 5 alongside the patch verifier, which needs
-// the same abstract syntax tree walk.
+// Module M3 in docs/architecture.md. The state-file parser was implemented in
+// Unit 4 (Week 4). Unit 5 (v0.3.0-algo) adds HCL source parsing (*.tf) and
+// an HCL renderer in hcl.go, shared with the patch verifier (M9), which
+// re-parses every candidate patch through the same abstract syntax tree walk.
 package tfstate
 
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"os"
 	"sort"
 )
-
-// ErrHCLNotYetSupported is returned when a directory of *.tf files is passed.
-var ErrHCLNotYetSupported = errors.New("tfstate: HCL parsing lands in Unit 5; pass a terraform.tfstate file")
 
 // Resource is a normalized resource declaration extracted from Terraform
 // state or configuration.
@@ -41,12 +37,13 @@ func (r Resource) Bool(key string) (value, ok bool) {
 	return value, ok
 }
 
-// Parser parses a terraform.tfstate file into normalized Resource values.
+// Parser parses a terraform.tfstate file, or a directory of *.tf files, into
+// normalized Resource values.
 type Parser interface {
 	Parse(ctx context.Context, path string) ([]Resource, error)
 }
 
-// NewParser returns the default state-file Parser.
+// NewParser returns the default Parser: state file or HCL directory.
 func NewParser() Parser { return stateParser{} }
 
 type stateParser struct{}
@@ -74,7 +71,7 @@ func (stateParser) Parse(ctx context.Context, path string) ([]Resource, error) {
 		return nil, fmt.Errorf("tfstate: %w", err)
 	}
 	if info.IsDir() {
-		return nil, ErrHCLNotYetSupported
+		return parseDir(ctx, path)
 	}
 	b, err := os.ReadFile(path)
 	if err != nil {

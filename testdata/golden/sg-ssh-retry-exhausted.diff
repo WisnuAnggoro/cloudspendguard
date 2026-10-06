@@ -1,0 +1,5 @@
+NO VERIFIED PATCH
+attempt 1: rejected, patch contains invalid values: ingress.cidr_blocks = "[[CORPORATE_CIDR]]" is an unresolved placeholder, use a concrete value
+attempt 2: rejected, patch contains invalid values: ingress.cidr_blocks = "[[CORPORATE_CIDR]]" is an unresolved placeholder, use a concrete value
+attempt 3: rejected, patch contains invalid values: ingress.cidr_blocks = "[[CORPORATE_CIDR]]" is an unresolved placeholder, use a concrete value
+no patch passed verification after 3 attempts; reported without a patch

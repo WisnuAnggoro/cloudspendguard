@@ -2,7 +2,7 @@
 
 > Unified FinOps + Cloud Security Posture CLI for AWS. Local-first. Written in Go.
 
-**Status:** Unit 4 (Week 4), `v0.2.0-analyze-alpha`. Ingestion (CUR Parquet and CSV, CloudTrail JSON, Terraform state), the local SQL store, `csg query`, and the first four rules (two cost, two security) feed the joint prioritizer through `csg analyze`. CI runs lint, a race-enabled test matrix on Linux, macOS, and Windows, a 90% coverage gate, static cross-compilation, `govulncheck`, and an end-to-end smoke test. See [`CHANGELOG.md`](CHANGELOG.md), the [demo runbook](docs/demo.md), and [`docs/gantt.mmd`](docs/gantt.mmd) for the remaining schedule.
+**Status:** Unit 5 (Week 5), `v0.3.0-algo`. The full rule library (15 cost rules and 20 security rules mapped to CIS AWS Foundations v3.0.0), an STL plus Isolation Forest cost-anomaly detector, the joint prioritizer with per-component scores, and LLM-assisted Terraform remediation behind an independent verifier (`csg remediate`). Ollama is the default backend, so nothing leaves the machine. Core packages have 97% statement coverage against a 90% gate. See [`CHANGELOG.md`](CHANGELOG.md), the [demo runbook](docs/demo.md), and [`docs/gantt.mmd`](docs/gantt.mmd) for the remaining schedule.
 
 CloudSpendGuard produces a **single prioritized backlog** of remediation actions where each item shows both its **projected monthly savings** and **security-risk reduction**, so DevOps, FinOps, and Security teams stop working from three different dashboards.
 
@@ -37,18 +37,52 @@ csg query "SELECT service, ROUND(SUM(cost), 2) AS cost FROM cur GROUP BY 1 ORDER
 
 # One prioritized backlog of cost and security findings
 csg analyze --profile devops
+csg analyze --weights 0.6,0.3,0.1 --top 10      # explicit alpha, beta, gamma
+
+# Cost anomalies (STL + robust z-score + Isolation Forest)
+csg anomalies
+csg anomalies --series AmazonEC2/booking
+
+# A verified Terraform patch for one finding (local Ollama by default)
+ollama pull qwen2.5-coder:1.5b
+csg remediate SEC-EC2-IMDSV2-001:i-0a1b2c3d4e5f60042 --model qwen2.5-coder:1.5b
+
+# The same, replayed from a recorded fixture (no model needed)
+csg remediate SEC-EC2-IMDSV2-001:i-0a1b2c3d4e5f60042 \
+  --llm-provider replay --fixture testdata/llm/imdsv2-injection-tag.json
 ```
+
+`csg remediate` never applies a change. It prints a unified diff only after
+the verifier has re-parsed the patch and re-run every rule on it.
 
 Or run everything at once with `make demo`. Data lives in `.csg/csg.db` (override with `--db` or `$CSG_DB`).
 
-### Rules in v0.2.0
+### Rules in v0.3.0
 
-| Rule | Kind | Signal | Control |
+Cost (15): `COST-EBS-IDLE-001`, `COST-EIP-UNATTACHED-001`, `COST-NAT-IDLE-001`,
+`COST-ANOMALY-001`, `COST-EBS-GP2-001`, `COST-EC2-PREVGEN-001`,
+`COST-EC2-GRAVITON-001`, `COST-EC2-STOPPED-001`, `COST-RDS-NONPROD-SIZE-001`,
+`COST-RDS-NONPROD-MULTIAZ-001`, `COST-RDS-GP2-001`, `COST-S3-NO-LIFECYCLE-001`,
+`COST-LOGS-RETENTION-001`, `COST-EBS-SNAPSHOT-ORPHAN-001`, `COST-ELB-IDLE-001`.
+Savings come from CUR when the resource is billed, otherwise from list prices.
+
+Security (20), CIS AWS Foundations Benchmark v3.0.0:
+
+| Rule | CIS | Rule | CIS |
 |---|---|---|---|
-| `COST-EBS-IDLE-001` | cost | `aws_ebs_volume` with no `aws_volume_attachment`, priced from CUR | - |
-| `COST-EIP-UNATTACHED-001` | cost | `aws_eip` without association, or CUR `PublicIPv4:IdleAddress` | - |
-| `SEC-S3-PUBLIC-001` | security | public ACL, disabled Block Public Access, `Principal "*"` policy, or matching CloudTrail calls | CIS AWS v3.0.0 2.1.4 |
-| `SEC-IAM-ADMIN-001` | security | policy allowing `Action "*"` on `Resource "*"` in Terraform or CloudTrail | CIS AWS v3.0.0 1.16 |
+| `SEC-IAM-PASSWORD-001` | 1.8, 1.9 | `SEC-CT-MULTIREGION-001` | 3.1 |
+| `SEC-IAM-USER-POLICY-001` | 1.15 | `SEC-CT-VALIDATION-001` | 3.2 |
+| `SEC-IAM-ADMIN-001` | 1.16 | `SEC-CT-KMS-001` | 3.5 |
+| `SEC-S3-TLS-001` | 2.1.1 | `SEC-KMS-ROTATION-001` | 3.6 |
+| `SEC-S3-MFA-DELETE-001` | 2.1.2 | `SEC-VPC-FLOWLOGS-001` | 3.7 |
+| `SEC-S3-PUBLIC-001` | 2.1.4 | `SEC-NACL-ADMIN-001` | 5.1 |
+| `SEC-EBS-ENCRYPT-001` | 2.2.1 | `SEC-SG-ADMIN-IPV4-001` | 5.2 |
+| `SEC-RDS-ENCRYPT-001` | 2.3.1 | `SEC-SG-ADMIN-IPV6-001` | 5.3 |
+| `SEC-RDS-PUBLIC-001` | 2.3.3 | `SEC-SG-DEFAULT-001` | 5.4 |
+| `SEC-EFS-ENCRYPT-001` | 2.4.1 | `SEC-EC2-IMDSV2-001` | 5.6 |
+
+Rules combine Terraform state (or `*.tf` files) with CloudTrail evidence of
+the same change made outside Terraform.
 
 ### Planned CLI (later units)
 
@@ -65,6 +99,7 @@ cd cloudspendguard
 make build        # static binary (CGO_ENABLED=0)
 make test         # race detector, all packages
 make cover-gate   # 90% coverage gate on analyzers and algorithms
+make golden       # rewrite LLM golden diffs after an intended change
 make lint         # go vet + golangci-lint v2
 make ci           # everything GitHub Actions runs, locally
 ```
@@ -73,8 +108,9 @@ make ci           # everything GitHub Actions runs, locally
 
 - Read-only AWS access only. See [`docs/iam-policy.json`](docs/iam-policy.json).
 - No cloud data leaves your machine unless you explicitly pass `--llm-provider=openai`.
-- PII/ARN redaction pass before any external LLM call.
-- Prompt-injection guardrails and adversarial test suite.
+- Remote LLMs need both `--llm-provider=openai` and `--allow-remote`; ARNs, account IDs, IPs, e-mails, and access keys are redacted first.
+- Prompt-injection guardrails: instruction-like tag and name values never reach the model, and the data block is fenced with a random nonce. Adversarial tests cover 12 injection payloads and 9 malicious model answers.
+- Every patch is re-parsed and re-scanned by an independent verifier and is never applied automatically.
 
 ## Roadmap
 

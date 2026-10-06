@@ -22,8 +22,8 @@ func TestRead_ParquetAndLegacyCSVAgree(t *testing.T) {
 	if err != nil {
 		t.Fatalf("csv: %v", err)
 	}
-	if len(pq) != 300 || len(csv) != 300 {
-		t.Fatalf("want 300 records each, got parquet=%d csv=%d", len(pq), len(csv))
+	if len(pq) != 392 || len(csv) != 392 {
+		t.Fatalf("want 392 records each, got parquet=%d csv=%d", len(pq), len(csv))
 	}
 	for i := range pq {
 		a, b := pq[i], csv[i]
@@ -63,8 +63,8 @@ func TestRead_ParquetGolden(t *testing.T) {
 	for _, r := range recs {
 		total += r.UnblendedCost
 	}
-	if math.Abs(total-221.28) > 0.01 {
-		t.Fatalf("total cost = %.4f, want 221.28", total)
+	if math.Abs(total-1322.80) > 0.01 {
+		t.Fatalf("total cost = %.4f, want 1322.80", total)
 	}
 }
 
@@ -79,8 +79,8 @@ func TestRead_Directory(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(recs) != 600 {
-		t.Fatalf("want 600 records from directory, got %d", len(recs))
+	if len(recs) != 784 {
+		t.Fatalf("want 784 records from directory, got %d", len(recs))
 	}
 }
 
