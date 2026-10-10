@@ -33,6 +33,9 @@ Integration, reporting, evaluation, and deployment. Tag `v0.6.0-beta` on the mer
 
 ### Fixed
 
+- SARIF validator now loads certifi's certificate bundle in addition to the configured/default
+  trust roots, avoiding missing-CA failures on macOS while retaining TLS verification.
+  Dependency installation uses `python3 -m pip` to match the executing interpreter.
 - IMDSv2 rule treated `http_endpoint = "disabled"` as non-compliant (false positive found by the evaluation).
 
 ### Known limits

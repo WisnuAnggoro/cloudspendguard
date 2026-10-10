@@ -93,6 +93,28 @@ csg report --format markdown --top 20 > backlog.md
 
 ## 5. Build and release commands
 
+### SARIF validation dependencies
+
+The Go CLI does not require Python. The optional SARIF schema validator needs
+`jsonschema` and `certifi`; install them with the same interpreter that runs the script:
+
+```bash
+python3 -m pip install -r scripts/requirements-sarif.txt
+python3 scripts/validate_sarif.py ./csg.sarif
+```
+
+If Python requires an isolated environment, create and activate a virtual environment
+first (`python3 -m venv .venv` and `source .venv/bin/activate`). Do not commit `.venv/`.
+
+The validator loads Python's configured/default trust roots and adds certifi's CA
+bundle. Certificate and hostname verification stay enabled, so a manual
+`SSL_CERT_FILE` export is not needed for the standard public certificate chain.
+For a company proxy with a custom CA, keep `SSL_CERT_FILE` pointing to the trusted
+PEM bundle supplied by your administrator. If downloading the schema fails, the
+validator returns exit code 2; schema validation errors return 1 and success returns 0.
+
+### Build and release
+
 ```bash
 make build                        # one binary for this machine
 make build-all                    # five static binaries in ./dist

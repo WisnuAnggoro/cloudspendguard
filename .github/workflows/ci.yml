@@ -122,7 +122,8 @@ jobs:
           test -s tmp/report.html
       - name: Validate SARIF against the OASIS 2.1.0 schema
         run: |
-          pip install jsonschema
+          python3 -m pip install -r scripts/requirements-sarif.txt
+          python3 -m unittest discover -s scripts -p 'test_*.py'
           python3 scripts/validate_sarif.py tmp/report.sarif
       - uses: actions/upload-artifact@v4
         with:
