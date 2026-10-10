@@ -1,8 +1,10 @@
 name: CI
 
-# Unit 4 and 5 (v0.3.0-algo): lint, cross-platform test matrix with the
-# race detector, coverage upload and gate, static cross-compilation (NFR4),
-# vulnerability scan, and an end-to-end smoke run of the demo commands.
+# Units 4 to 6 (v0.6.0-beta): lint, cross-platform test matrix with the race
+# detector, coverage upload and gate, static cross-compilation (NFR4),
+# vulnerability scan, an end-to-end smoke run that also validates the SARIF
+# output against the official schema, a container image build (pushed to GHCR
+# on version tags), and a manually triggered SARIF upload to GitHub code scanning.
 
 on:
   push:
@@ -10,6 +12,7 @@ on:
     tags: ["v*"]
   pull_request:
     branches: [main, develop]
+  workflow_dispatch: {}
 
 permissions:
   contents: read
@@ -112,6 +115,71 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
       - name: Run the demo against bundled sample data
         run: make demo
+      - name: Render all four report formats from the embedded sample
+        run: |
+          make build
+          for f in html md json sarif; do ./bin/csg run --sample --quiet --report "tmp/report.$f"; done
+          test -s tmp/report.html
+      - name: Validate SARIF against the OASIS 2.1.0 schema
+        run: |
+          pip install jsonschema
+          python3 scripts/validate_sarif.py tmp/report.sarif
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sample-reports
+          path: tmp/report.*
+          retention-days: 7
+
+  docker:
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Build the image and smoke-test it
+        run: |
+          docker build -t csg:ci --build-arg VERSION="${GITHUB_REF_NAME}" .
+          docker run --rm csg:ci version
+          docker run --rm csg:ci run --sample --quiet --top 3
+      - name: Log in to GHCR (version tags only)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Push to GHCR (version tags only)
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          image="ghcr.io/${GITHUB_REPOSITORY_OWNER}/cloudspendguard"
+          docker tag csg:ci "${image}:${GITHUB_REF_NAME#v}"
+          docker push "${image}:${GITHUB_REF_NAME#v}"
+
+  code-scanning:
+    needs: smoke
+    # Manual only: the fixtures are deliberately insecure, so uploading them
+    # on every push would fill the Security tab with intentional alerts.
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+      - name: Scan the repository's own Terraform fixtures
+        run: |
+          make build
+          ./bin/csg run --input testdata/eval --quiet --sarif-uri testdata/eval/main.tf --report csg.sarif
+      - uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: csg.sarif
+          category: cloudspendguard
 
   vulncheck:
     runs-on: ubuntu-latest
