@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CloudSpendGuard Report</title>
+<style>
+:root { --ink:#1b2430; --muted:#5b6675; --line:#d9dee5; --bg:#f6f8fa; --card:#fff; --accent:#0b5cad;
+  --critical:#8f1d1d; --high:#b3401a; --medium:#8a6100; --low:#1f6b3a; --cost:#33507a; }
+* { box-sizing:border-box; }
+body { margin:0; font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; color:var(--ink); background:var(--bg); }
+main { max-width:1100px; margin:0 auto; padding:24px 20px 48px; }
+h1 { margin:0 0 4px; font-size:26px; }
+h2 { margin:32px 0 12px; font-size:19px; }
+.meta { color:var(--muted); margin:0 0 20px; }
+.cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:12px; }
+.card { background:var(--card); border:1px solid var(--line); border-radius:8px; padding:14px 16px; }
+.card .n { font-size:28px; font-weight:650; }
+.card .l { color:var(--muted); font-size:13px; }
+table { width:100%; border-collapse:collapse; background:var(--card); border:1px solid var(--line); border-radius:8px; overflow:hidden; font-size:14px; }
+th, td { padding:8px 10px; text-align:left; border-bottom:1px solid var(--line); vertical-align:top; }
+th { background:#eef1f5; font-weight:600; white-space:nowrap; }
+td.num, th.num { text-align:right; font-variant-numeric:tabular-nums; }
+code { font:13px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; background:#eef1f5; padding:1px 5px; border-radius:4px; overflow-wrap:anywhere; }
+code.rule { white-space:nowrap; }
+.badge { display:inline-block; padding:1px 8px; border-radius:10px; color:#fff; font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:.03em; }
+.badge.critical { background:var(--critical); } .badge.high { background:var(--high); }
+.badge.medium { background:var(--medium); } .badge.low { background:var(--low); }
+.badge.info, .badge.cost { background:var(--cost); }
+.bars { display:flex; gap:4px; align-items:center; min-width:150px; }
+.bar { flex:1; height:8px; background:#e3e7ec; border-radius:4px; overflow:hidden; }
+.bar > i { display:block; height:100%; }
+.bar.s > i { background:#2c7a4b; } .bar.r > i { background:#b3401a; } .bar.b > i { background:#6b5b95; }
+.legend { color:var(--muted); font-size:13px; margin:8px 0 0; }
+.finding { background:var(--card); border:1px solid var(--line); border-left:5px solid var(--cost); border-radius:8px; padding:14px 16px; margin:12px 0; break-inside:avoid; }
+.finding.critical { border-left-color:var(--critical); } .finding.high { border-left-color:var(--high); }
+.finding.medium { border-left-color:var(--medium); } .finding.low { border-left-color:var(--low); }
+.finding h3 { margin:0 0 6px; font-size:16px; }
+.finding dl { margin:8px 0 0; display:grid; grid-template-columns:110px 1fr; gap:4px 12px; }
+.finding dt { color:var(--muted); } .finding dd { margin:0; }
+.note { color:var(--muted); font-size:13px; margin-top:28px; }
+@media print { body { background:#fff; } main { padding:0; } }
+</style>
+</head>
+<body>
+<main>
+<h1>CloudSpendGuard Report</h1>
+<p class="meta">Generated {{.Generated}} by csg {{.Version}}{{if .Inputs.SampleData}} on the bundled sample account{{end}}. Input: {{.Inputs.CUR}} CUR line items, {{.Inputs.Events}} CloudTrail events, {{.Inputs.Terraform}} Terraform resources.<br>
+Profile <code>{{.Profile}}</code>: score = {{.Weights.Alpha}} &times; savings + {{.Weights.Beta}} &times; risk &minus; {{.Weights.Gamma}} &times; blast radius, each term normalized to 0 to 1.</p>
+
+<section class="cards" aria-label="Summary">
+<div class="card"><div class="n">{{len .Findings}}</div><div class="l">findings</div></div>
+<div class="card"><div class="n">{{.Security}}</div><div class="l">security</div></div>
+<div class="card"><div class="n">{{.Cost}}</div><div class="l">cost</div></div>
+<div class="card"><div class="n">${{money .Savings}}</div><div class="l">projected savings per month</div></div>
+{{range .Severities}}<div class="card"><div class="n">{{.Count}}</div><div class="l">{{.Severity}}</div></div>{{end}}
+</section>
+
+{{if not .Findings}}<p>No findings.</p>{{else}}
+<h2>Prioritized backlog</h2>
+<table>
+<thead><tr><th class="num">#</th><th class="num">Score</th><th>Savings / Risk / Blast</th><th>Kind</th><th>Severity</th><th>Rule</th><th>Resource</th><th class="num">Savings per month</th><th>Controls</th></tr></thead>
+<tbody>
+{{range .Findings}}<tr>
+<td class="num">{{.Rank}}</td>
+<td class="num">{{score .Score}}</td>
+<td><div class="bars" title="Savings {{score .Savings}}, risk {{score .Risk}}, blast radius {{score .Blast}}">
+<span class="bar s"><i style="width:{{pct .Savings}}%"></i></span>
+<span class="bar r"><i style="width:{{pct .Risk}}%"></i></span>
+<span class="bar b"><i style="width:{{pct .Blast}}%"></i></span></div></td>
+<td>{{.Kind}}</td>
+<td><span class="badge {{sev (print .Severity)}}">{{dash (print .Severity)}}</span></td>
+<td><code class="rule">{{.RuleID}}</code></td>
+<td><code>{{.Resource.ResourceID}}</code></td>
+<td class="num">${{money .MonthlySavingsUSD}}</td>
+<td>{{controls .}}</td>
+</tr>{{end}}
+</tbody>
+</table>
+<p class="legend">Bars show the normalized savings (green), risk reduction (red), and blast radius (purple) components of the score, so every rank can be audited.</p>
+{{end}}
+
+{{if .Anomalies}}<h2>Cost anomalies</h2>
+<ul>{{range .Anomalies}}<li><code>{{.Series}}</code>: {{join .Days ", "}}</li>{{end}}</ul>{{end}}
+
+{{if .Findings}}<h2>Remediation cards</h2>
+{{range .Findings}}<article class="finding {{sev (print .Severity)}}">
+<h3>{{.Rank}}. {{.Title}} <span class="badge {{sev (print .Severity)}}">{{dash (print .Severity)}}</span></h3>
+<dl>
+<dt>Resource</dt><dd><code>{{.Resource.ResourceID}}</code>{{if .Resource.TerraformAddress}} (<code>{{.Resource.TerraformAddress}}</code>){{end}}</dd>
+<dt>Evidence</dt><dd>{{.Description}}</dd>
+{{if .SuggestedRemediation}}<dt>Suggested fix</dt><dd>{{.SuggestedRemediation.Summary}} <em>({{dash (print .SuggestedRemediation.Action)}})</em></dd>{{end}}
+<dt>Controls</dt><dd>{{controls .}}</dd>
+<dt>Impact</dt><dd>${{money .MonthlySavingsUSD}} per month; risk reduction {{score .Risk}}; blast radius {{score .Blast}}</dd>
+</dl>
+</article>{{end}}{{end}}
+
+<p class="note">CloudSpendGuard never applies a change. Patches from <code>csg remediate</code> are shown for human review only.</p>
+</main>
+</body>
+</html>

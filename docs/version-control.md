@@ -33,7 +33,7 @@ When a unit milestone is reached, `develop` merges into `main` and is tagged.
 | `v0.1.0-ingest` | Ingestion layer complete (M1, M2, M3) |
 | `v0.2.0-analyze-alpha` | Cost and security analyzers producing findings (M5, M6) |
 | `v0.3.0-algo` | Core logic: rule library (M5, M6), anomaly detector, joint prioritizer (M7), and the remediation and verification loop (M8, M9), pulled forward from `v0.6.0-beta` |
-| `v0.6.0-beta` | Integration, live collector (M3b), and evaluation against real data |
+| `v0.6.0-beta` | Integration (`csg run`), reporting (M10), evaluation against tfsec and Checkov, Docker and scheduled-scan deployment; live collector (M3b) moved to a later release |
 | `v0.9.0-rc1` | Reporting complete, evaluation run (M10) |
 | `v1.0.0` | Release |
 

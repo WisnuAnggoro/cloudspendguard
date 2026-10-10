@@ -14,7 +14,7 @@ import (
 
 // version is overridden at release time with
 // -ldflags "-X main.version=$(git describe --tags)".
-var version = "0.3.0-algo"
+var version = "0.6.0-beta"
 
 func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
@@ -47,9 +47,10 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 		err = cmdAnomalies(ctx, args[1:], stdout)
 	case "remediate":
 		err = cmdRemediate(ctx, args[1:], stdout)
-	case "report", "run":
-		fmt.Fprintf(stderr, "csg %s: planned for Unit 6 (v0.6.0-beta); use `csg analyze` for now\n", args[0])
-		return 2
+	case "run":
+		err = cmdRun(ctx, args[1:], stdout)
+	case "report":
+		err = cmdReport(ctx, args[1:], stdout)
 	default:
 		fmt.Fprintf(stderr, "unknown command: %s\n\n", args[0])
 		printUsage(stderr)
@@ -83,6 +84,8 @@ Commands:
   analyze                      Run 15 cost and 20 security rules and print a prioritized backlog
   anomalies                    Show the STL + Isolation Forest cost-anomaly scores per series
   remediate <finding-id>       Generate a Terraform patch with an LLM and verify it (never applied)
+  run                          Ingest, analyze, rank, and report in one step (--sample or --input <dir>)
+  report                       Render the backlog from the local store as html, markdown, json, or sarif
   version                      Print version
   help                         Print this help
 
@@ -98,6 +101,19 @@ analyze flags:
 anomalies flags:
   --series <key>     Print every day of one series (e.g. AmazonEC2/booking)
 
+run flags:
+  --sample           Analyze the bundled sample account (no files, no AWS credentials)
+  --input <dir>      Directory with CUR (.parquet/.csv), CloudTrail (.json), and Terraform (.tfstate/.tf) files
+  --report <path>    Write a report; the format follows the extension (.html, .md, .json, .sarif)
+  --profile, --weights, --top   As for analyze
+  --stats            Print stage timings, throughput, and memory use
+  --db <path>        Keep the local database (default: temporary)
+
+report flags:
+  --format <fmt>     html, markdown (default), json, or sarif
+  --out <path>       Write to a file instead of standard output
+  --profile, --weights, --top, --sarif-uri
+
 remediate flags:
   --llm-provider <p> ollama (default, local), openai (needs --allow-remote), or replay
   --model <name>     Model (default llama3.1:8b for ollama)
@@ -105,6 +121,9 @@ remediate flags:
   --record <file>    Save the live model's responses as a fixture
 
 Examples:
+  csg run --sample --report out.html
+  csg run --input ./testdata --report out.sarif --stats
+  csg report --format sarif --out csg.sarif
   csg ingest cur ./testdata/sample-cur.parquet
   csg ingest cloudtrail ./testdata/sample-events.json
   csg ingest tfstate ./testdata/terraform.tfstate

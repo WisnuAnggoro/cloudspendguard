@@ -81,3 +81,14 @@ Then show `.github/workflows/ci.yml` and a green run in the GitHub Actions tab.
 `make demo` runs the build, the three ingests, the SQL query, and `analyze`
 against a throwaway database in `tmp/`. CI runs the same target as its smoke
 test.
+
+## Unit 6: one command to a report
+
+```bash
+./bin/csg run --sample --report tmp/report.html --stats --top 5
+./bin/csg report --db tmp/demo.db --format sarif --out tmp/demo.sarif
+python3 -m pip install -r scripts/requirements-sarif.txt
+python3 scripts/validate_sarif.py tmp/demo.sarif       # expect: valid against SARIF 2.1.0
+make eval                                               # needs tfsec and Checkov on PATH
+make bench                                              # 10k, 100k, 1M CUR line items
+```

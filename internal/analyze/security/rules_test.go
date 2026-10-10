@@ -178,3 +178,32 @@ func TestCoversAdminPort(t *testing.T) {
 		}
 	}
 }
+
+// TestIMDSDisabledIsCompliant is a regression test found by the Unit 6
+// detection experiment: an instance with http_endpoint = "disabled" has no
+// metadata service at all, so it cannot be exploited through IMDSv1.
+func TestIMDSDisabledIsCompliant(t *testing.T) {
+	disabled := res("aws_instance", "i", map[string]any{"id": "i-1", "metadata_options": []any{map[string]any{"http_endpoint": "disabled"}}})
+	optional := res("aws_instance", "i", map[string]any{"id": "i-1", "metadata_options": []any{map[string]any{"http_endpoint": "enabled", "http_tokens": "optional"}}})
+	for _, tc := range []struct {
+		name string
+		r    tfstate.Resource
+		want int
+	}{{"endpoint disabled", disabled, 0}, {"tokens optional", optional, 1}} {
+		got, err := Registry()[idx(t, "SEC-EC2-IMDSV2-001")].Detect(context.Background(), Input{Resources: []tfstate.Resource{tc.r}})
+		if err != nil || len(got) != tc.want {
+			t.Errorf("%s: got %d findings (err %v), want %d", tc.name, len(got), err, tc.want)
+		}
+	}
+}
+
+func idx(t *testing.T, id string) int {
+	t.Helper()
+	for i, d := range Registry() {
+		if d.RuleID() == id {
+			return i
+		}
+	}
+	t.Fatalf("rule %s not in registry", id)
+	return -1
+}
