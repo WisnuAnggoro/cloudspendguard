@@ -11,7 +11,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"sort"
 	"strings"
 	"time"
 
@@ -173,13 +172,4 @@ func controls(f models.Finding) string {
 		out[i] = strings.ReplaceAll(c, "CIS-AWS-v3.0.0-", "CIS ")
 	}
 	return strings.Join(out, ", ")
-}
-
-func sortedKeys(m map[string]string) []string {
-	keys := make([]string, 0, len(m))
-	for k := range m {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-	return keys
 }

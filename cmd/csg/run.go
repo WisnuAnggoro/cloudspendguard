@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -329,19 +330,17 @@ func writeReport(path string, format report.Format, rep report.Report) error {
 		return err
 	}
 	if dir := filepath.Dir(path); dir != "." {
-		if err := os.MkdirAll(dir, 0o755); err != nil {
+		if err := os.MkdirAll(dir, 0o700); err != nil {
 			return err
 		}
 	}
-	f, err := os.Create(path)
+	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o600)
 	if err != nil {
 		return err
 	}
-	if err := r.Render(f, rep); err != nil {
-		f.Close()
-		return err
-	}
-	return f.Close()
+	renderErr := r.Render(f, rep)
+	closeErr := f.Close()
+	return errors.Join(renderErr, closeErr)
 }
 
 func printStats(out io.Writer, stages []stage, total time.Duration, nCUR, nEv, nTF int) {
