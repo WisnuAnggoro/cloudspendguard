@@ -5,6 +5,41 @@ All notable changes to CloudSpendGuard. The format follows
 [Semantic Versioning](https://semver.org/) with the milestone tags defined in
 [`docs/version-control.md`](docs/version-control.md).
 
+## [0.6.0-beta], Unit 6 (Week 6)
+
+Integration, reporting, evaluation, and deployment. Tag `v0.6.0-beta` on the merge commit into `main`.
+
+### Added
+
+- `csg run (--sample | --input <dir>)`: ingest, analyze, prioritize, and report in one command, with `--profile`,
+  `--weights`, `--top`, `--format`, `--report`, `--db`, `--sarif-uri`, `--quiet`, and `--stats` (stage timings,
+  throughput, peak memory).
+- `csg report`: re-render the stored backlog as Markdown, HTML, JSON, or SARIF 2.1.0 (M10).
+- Self-contained HTML report (no scripts, no external requests) with score bars and remediation cards; the
+  bundled example is `docs/sample-report.html`.
+- `internal/sample`: the sample account embedded in the binary, so `--sample` works anywhere.
+- Evaluation harness: `testdata/eval` (34 labeled defects), `tools/evalscore`, `scripts/eval.sh`,
+  `tools/benchgen`, `scripts/bench.sh`, `scripts/validate_sarif.py`, and the survey kit in `docs/survey`.
+- `Dockerfile` (multi-stage, distroless, non-root), `.dockerignore`, `deploy/aws/scheduled-scan.yaml`,
+  `docs/install.md`, `docs/evaluation.md`.
+- CI: smoke run of all four formats with SARIF schema validation, Docker build and GHCR push on version tags,
+  manual SARIF upload to code scanning.
+- Make targets `sample-report`, `bench`, `eval`, `docker`, `docker-run`.
+
+### Changed
+
+- `csg run` keeps CUR rows in memory unless `--db` is set (`store.DedupeCUR`): 1,000,000 rows in 7.1 s, was 41 s.
+- Core coverage gate now includes `internal/report`.
+
+### Fixed
+
+- IMDSv2 rule treated `http_endpoint = "disabled"` as non-compliant (false positive found by the evaluation).
+
+### Known limits
+
+- Terraform variables and data sources are not resolved. Memory grows with CUR rows (NFR1 partly met).
+  No Lambda handler; scheduled Fargate task instead.
+
 ## [0.3.0-algo], Unit 5 (Week 5)
 
 Core logic milestone: the full rule library, the cost-anomaly detector, the
