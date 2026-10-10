@@ -1,0 +1,236 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >-
+  CloudSpendGuard scheduled scan. Once a day an ECS Fargate task copies a CUR
+  and CloudTrail export from S3, runs `csg run`, and writes the HTML and SARIF
+  reports to a private report bucket. The task role is read-only on the input
+  prefix. CloudSpendGuard never changes AWS resources.
+
+Parameters:
+  ImageUri:
+    Type: String
+    Description: CloudSpendGuard image, for example ghcr.io/wisnuanggoro/cloudspendguard:0.6.0-beta
+  InputBucket:
+    Type: String
+    Description: Existing bucket that holds the exported CUR, CloudTrail, and Terraform state files
+  InputPrefix:
+    Type: String
+    Default: csg-input/
+    Description: Key prefix inside InputBucket, ending with a slash
+  SubnetIds:
+    Type: List<AWS::EC2::Subnet::Id>
+    Description: Subnets for the Fargate task (needs a route to S3 and to the image registry)
+  SecurityGroupId:
+    Type: AWS::EC2::SecurityGroup::Id
+    Description: Security group with outbound HTTPS only and no inbound rules
+  Schedule:
+    Type: String
+    Default: cron(0 5 * * ? *)
+    Description: EventBridge schedule expression (UTC)
+  Profile:
+    Type: String
+    Default: devops
+    AllowedValues: [devops, finops, security, cxo]
+
+Resources:
+  ReportBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      VersioningConfiguration:
+        Status: Enabled
+      LifecycleConfiguration:
+        Rules:
+          - Id: expire-old-reports
+            Status: Enabled
+            ExpirationInDays: 90
+
+  ReportBucketTlsPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref ReportBucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: DenyInsecureTransport
+            Effect: Deny
+            Principal: "*"
+            Action: "s3:*"
+            Resource:
+              - !GetAtt ReportBucket.Arn
+              - !Sub "${ReportBucket.Arn}/*"
+            Condition:
+              Bool:
+                "aws:SecureTransport": "false"
+
+  LogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      RetentionInDays: 30
+
+  Cluster:
+    Type: AWS::ECS::Cluster
+
+  ExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: {Service: ecs-tasks.amazonaws.com}
+            Action: "sts:AssumeRole"
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+
+  TaskRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: {Service: ecs-tasks.amazonaws.com}
+            Action: "sts:AssumeRole"
+      Policies:
+        - PolicyName: read-input-write-reports
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: ListInputPrefix
+                Effect: Allow
+                Action: "s3:ListBucket"
+                Resource: !Sub "arn:${AWS::Partition}:s3:::${InputBucket}"
+                Condition:
+                  StringLike:
+                    "s3:prefix": [!Sub "${InputPrefix}*"]
+              - Sid: ReadInput
+                Effect: Allow
+                Action: "s3:GetObject"
+                Resource: !Sub "arn:${AWS::Partition}:s3:::${InputBucket}/${InputPrefix}*"
+              - Sid: WriteReports
+                Effect: Allow
+                Action: "s3:PutObject"
+                Resource: !Sub "${ReportBucket.Arn}/*"
+
+  TaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: cloudspendguard-scan
+      RequiresCompatibilities: [FARGATE]
+      NetworkMode: awsvpc
+      Cpu: "1024"
+      Memory: "4096"
+      ExecutionRoleArn: !GetAtt ExecutionRole.Arn
+      TaskRoleArn: !GetAtt TaskRole.Arn
+      Volumes:
+        - Name: work
+      ContainerDefinitions:
+        - Name: fetch
+          Image: public.ecr.aws/aws-cli/aws-cli:latest
+          Essential: false
+          EntryPoint: [aws]
+          Command: [s3, sync, !Sub "s3://${InputBucket}/${InputPrefix}", /work/in, --only-show-errors]
+          MountPoints: [{SourceVolume: work, ContainerPath: /work}]
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref LogGroup
+              awslogs-region: !Ref "AWS::Region"
+              awslogs-stream-prefix: csg
+        - Name: csg
+          Image: !Ref ImageUri
+          Essential: false
+          Command: [run, --input, /work/in, --profile, !Ref Profile, --report, /work/out/report.html, --quiet, --stats]
+          DependsOn: [{ContainerName: fetch, Condition: SUCCESS}]
+          MountPoints: [{SourceVolume: work, ContainerPath: /work}]
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref LogGroup
+              awslogs-region: !Ref "AWS::Region"
+              awslogs-stream-prefix: csg
+        - Name: csg-sarif
+          Image: !Ref ImageUri
+          Essential: false
+          Command: [run, --input, /work/in, --profile, !Ref Profile, --report, /work/out/report.sarif, --quiet]
+          DependsOn: [{ContainerName: csg, Condition: SUCCESS}]
+          MountPoints: [{SourceVolume: work, ContainerPath: /work}]
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref LogGroup
+              awslogs-region: !Ref "AWS::Region"
+              awslogs-stream-prefix: csg
+        - Name: publish
+          Image: public.ecr.aws/aws-cli/aws-cli:latest
+          Essential: true
+          EntryPoint: [aws]
+          Command: [s3, cp, /work/out, !Sub "s3://${ReportBucket}/reports/", --recursive, --only-show-errors]
+          DependsOn: [{ContainerName: csg-sarif, Condition: SUCCESS}]
+          MountPoints: [{SourceVolume: work, ContainerPath: /work}]
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref LogGroup
+              awslogs-region: !Ref "AWS::Region"
+              awslogs-stream-prefix: csg
+
+  SchedulerRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: {Service: events.amazonaws.com}
+            Action: "sts:AssumeRole"
+      Policies:
+        - PolicyName: run-scan-task
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: "ecs:RunTask"
+                Resource: !Ref TaskDefinition
+                Condition:
+                  ArnEquals:
+                    "ecs:cluster": !GetAtt Cluster.Arn
+              - Effect: Allow
+                Action: "iam:PassRole"
+                Resource: [!GetAtt ExecutionRole.Arn, !GetAtt TaskRole.Arn]
+
+  DailyRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: Run the CloudSpendGuard scan
+      ScheduleExpression: !Ref Schedule
+      State: ENABLED
+      Targets:
+        - Id: scan
+          Arn: !GetAtt Cluster.Arn
+          RoleArn: !GetAtt SchedulerRole.Arn
+          EcsParameters:
+            LaunchType: FARGATE
+            TaskDefinitionArn: !Ref TaskDefinition
+            TaskCount: 1
+            NetworkConfiguration:
+              AwsVpcConfiguration:
+                AssignPublicIp: DISABLED
+                Subnets: !Ref SubnetIds
+                SecurityGroups: [!Ref SecurityGroupId]
+
+Outputs:
+  ReportBucketName:
+    Value: !Ref ReportBucket
+  ClusterName:
+    Value: !Ref Cluster

@@ -1,0 +1,11 @@
+.git
+.github
+bin/
+dist/
+tmp/
+.csg/
+coverage.out
+core.out
+docs/
+*.md
+!README.md
