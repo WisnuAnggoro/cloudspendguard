@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"path/filepath"
+	"reflect"
 	"testing"
 	"time"
 
@@ -140,5 +141,38 @@ func TestOpen_BadPath(t *testing.T) {
 	// A directory where the file should be cannot be opened as a database.
 	if _, err := Open(context.Background(), dir); err == nil {
 		t.Fatal("expected error opening a directory")
+	}
+}
+
+// TestDedupeCURMatchesStoreRoundTrip proves the in-memory path used by
+// `csg run` returns exactly what inserting into the store and loading back
+// returns, including de-duplication, ordering, and time truncation.
+func TestDedupeCURMatchesStoreRoundTrip(t *testing.T) {
+	ctx := context.Background()
+	t0 := time.Date(2026, 9, 1, 0, 0, 0, 500, time.UTC) // sub-second part must be dropped
+	mk := func(res string, day int, cost float64) cur.Record {
+		return cur.Record{UsageAccountID: "1", Service: "AmazonEC2", ResourceID: res, UsageType: "BoxUsage", Region: "eu-west-1",
+			Tags: map[string]string{"team": "a"}, UnblendedCost: cost, UsageStartDate: t0.AddDate(0, 0, day), UsageEndDate: t0.AddDate(0, 0, day+1)}
+	}
+	in := []cur.Record{mk("b", 1, 1.5), mk("a", 0, 2), mk("a", 0, 2), mk("c", 1, 0.25), mk("a", 1, 3)}
+
+	st, err := Open(ctx, filepath.Join(t.TempDir(), "x.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer st.Close()
+	if _, err := st.InsertCURRecords(ctx, in); err != nil {
+		t.Fatal(err)
+	}
+	want, err := st.LoadCURRecords(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := DedupeCUR(in)
+	if len(got) != 4 || !reflect.DeepEqual(got, want) {
+		t.Fatalf("in-memory path differs from the store:\n got  %+v\n want %+v", got, want)
+	}
+	if len(DedupeCUR(nil)) != 0 {
+		t.Error("nil input must give an empty result")
 	}
 }

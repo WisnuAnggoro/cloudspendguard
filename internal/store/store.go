@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 
@@ -320,4 +321,42 @@ func parseTime(s string) time.Time {
 func lineID(parts ...string) string {
 	h := sha256.Sum256([]byte(strings.Join(parts, "\x1f")))
 	return hex.EncodeToString(h[:12])
+}
+
+// DedupeCUR returns records exactly as LoadCURRecords would return them after
+// they had been inserted into an empty store: duplicates (same line ID as
+// InsertCURRecords computes it) are dropped, timestamps are truncated to
+// whole seconds, and the order is by usage start and then line ID. It lets
+// `csg run` analyze a throwaway account without paying for a database
+// round trip; Unit 6 measurements showed that round trip was 95% of the run
+// time at one million line items.
+func DedupeCUR(records []cur.Record) []cur.Record {
+	type keyed struct {
+		id    string
+		start string
+		rec   cur.Record
+	}
+	seen := make(map[string]struct{}, len(records))
+	keep := make([]keyed, 0, len(records))
+	for _, r := range records {
+		start, end := fmtTime(r.UsageStartDate), fmtTime(r.UsageEndDate)
+		id := lineID(r.UsageAccountID, r.Service, r.ResourceID, r.UsageType, r.Region, start, end, fmt.Sprint(r.UnblendedCost))
+		if _, dup := seen[id]; dup {
+			continue
+		}
+		seen[id] = struct{}{}
+		r.UsageStartDate, r.UsageEndDate = parseTime(start), parseTime(end)
+		keep = append(keep, keyed{id, start, r})
+	}
+	sort.Slice(keep, func(i, j int) bool {
+		if keep[i].start != keep[j].start {
+			return keep[i].start < keep[j].start
+		}
+		return keep[i].id < keep[j].id
+	})
+	out := make([]cur.Record, len(keep))
+	for i, k := range keep {
+		out[i] = k.rec
+	}
+	return out
 }
