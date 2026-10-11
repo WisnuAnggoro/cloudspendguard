@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -117,7 +118,17 @@ func TestUsageAndErrors(t *testing.T) {
 		{[]string{"help"}, 0},
 		{[]string{"version"}, 0},
 		{[]string{"bogus"}, 2},
-		{[]string{"report"}, 2},
+		{[]string{"report", "--db", filepath.Join(t.TempDir(), "absent.db")}, 1},
+		{[]string{"report", "--format", "pdf"}, 2},
+		{[]string{"report", "extra"}, 2},
+		{[]string{"run"}, 2},
+		{[]string{"run", "--sample", "--input", "x"}, 2},
+		{[]string{"run", "--sample", "--profile", "nope"}, 2},
+		{[]string{"run", "--sample", "--report", "out.txt"}, 2},
+		{[]string{"run", "--sample", "--report", "out.html", "--format", "pdf"}, 2},
+		{[]string{"run", "--sample", "extra"}, 2},
+		{[]string{"run", "--input", filepath.Join(t.TempDir(), "absent")}, 1},
+		{[]string{"run", "--input", t.TempDir()}, 1},
 		{[]string{"ingest"}, 2},
 		{[]string{"ingest", "cur"}, 2},
 		{[]string{"ingest", "cur", "--nope"}, 2},
@@ -164,5 +175,103 @@ func TestAnalyze_EmptyStore(t *testing.T) {
 	code, out, _ := csg(t, "analyze")
 	if code != 0 || !strings.Contains(out, "0 CUR line items") {
 		t.Fatalf("analyze on tfstate only: %d\n%s", code, out)
+	}
+}
+
+// TestRun_SampleToEveryFormat is the Unit 6 integration test: one command
+// goes from the bundled sample account to a report in all four formats.
+func TestRun_SampleToEveryFormat(t *testing.T) {
+	dir := t.TempDir()
+	for _, tc := range []struct {
+		file string
+		want []string
+	}{
+		{"out.html", []string{"<!DOCTYPE html>", "SEC-S3-PUBLIC-001", "bundled sample account", "legacy-ci-deployer"}},
+		{"out.md", []string{"# CloudSpendGuard Report", "COST-EBS-IDLE-001", "## Cost anomalies", "AmazonEC2/booking"}},
+		{"out.json", []string{`"schema_version": "1"`, `"findings"`, `"rule_id": "SEC-EC2-IMDSV2-001"`}},
+		{"out.sarif", []string{`"version": "2.1.0"`, `"ruleId": "SEC-S3-PUBLIC-001"`, `"level": "error"`}},
+	} {
+		path := filepath.Join(dir, tc.file)
+		code, out, stderr := csg(t, "run", "--sample", "--report", path, "--quiet")
+		if code != 0 || !strings.Contains(out, "Wrote") {
+			t.Fatalf("%s: exit %d: %s%s", tc.file, code, out, stderr)
+		}
+		b, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, w := range tc.want {
+			if !strings.Contains(string(b), w) {
+				t.Errorf("%s missing %q", tc.file, w)
+			}
+		}
+	}
+	// The table output is unchanged from `csg analyze`, and --stats adds timings.
+	code, out, _ := csg(t, "run", "--sample", "--stats", "--top", "3")
+	if code != 0 || !strings.Contains(out, "top 3 of 23") || !strings.Contains(out, "throughput") || !strings.Contains(out, "total") {
+		t.Fatalf("run --stats:\n%s", out)
+	}
+}
+
+func TestRun_InputDirectoryAndReportFromStore(t *testing.T) {
+	// testdata/ holds a CUR export, CloudTrail events, and Terraform state side
+	// by side; sub-directories (recorded model answers) must be ignored.
+	code, out, stderr := csg(t, "run", "--input", testdata, "--db", filepath.Join(t.TempDir(), "kept.db"), "--weights", "0.6,0.3,0.1")
+	if code != 0 || !strings.Contains(out, `Profile "custom"`) || !strings.Contains(out, "23 findings") {
+		t.Fatalf("run --input: exit %d\n%s\n%s", code, out, stderr)
+	}
+
+	// `csg report` reads the store that `csg ingest` filled.
+	db := filepath.Join(t.TempDir(), "csg.db")
+	for _, s := range [][]string{
+		{"ingest", "cur", "--db", db, filepath.Join(testdata, "sample-cur.csv")},
+		{"ingest", "cloudtrail", "--db", db, filepath.Join(testdata, "sample-events.json")},
+		{"ingest", "tfstate", "--db", db, filepath.Join(testdata, "terraform.tfstate")},
+	} {
+		if code, _, e := csg(t, s...); code != 0 {
+			t.Fatalf("%v: %s", s, e)
+		}
+	}
+	code, out, _ = csg(t, "report", "--db", db, "--top", "2")
+	if code != 0 || !strings.Contains(out, "# CloudSpendGuard Report") || strings.Count(out, "\n### ") != 2 {
+		t.Fatalf("report to stdout:\n%s", out)
+	}
+	path := filepath.Join(t.TempDir(), "nested", "csg.sarif")
+	code, out, _ = csg(t, "report", "--db", db, "--out", path, "--sarif-uri", "terraform/main.tf")
+	if code != 0 || !strings.Contains(out, "Wrote sarif report with 23 finding(s)") {
+		t.Fatalf("report --out: %s", out)
+	}
+	b, _ := os.ReadFile(path)
+	if !strings.Contains(string(b), "terraform/main.tf") {
+		t.Error("--sarif-uri ignored")
+	}
+}
+
+func TestDiscoverInputs(t *testing.T) {
+	dir := t.TempDir()
+	for _, n := range []string{"a.parquet", "b.CSV", "c.csv.gz", "d.json", "e.json.gz", "f.tfstate", "main.tf", "README.md", "labels.json"} {
+		body := []byte(nil)
+		switch n {
+		case "d.json":
+			body = []byte(`{"Records": []}`)
+		case "labels.json":
+			body = []byte(`{"labels": []}`) // JSON, but not CloudTrail: must be skipped
+		}
+		if err := os.WriteFile(filepath.Join(dir, n), body, 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := os.Mkdir(filepath.Join(dir, "sub"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "sub", "ignored.csv"), nil, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	in, err := discoverInputs(dir)
+	if err != nil || len(in.cur) != 3 || len(in.cloudtrail) != 2 || len(in.terraform) != 2 {
+		t.Fatalf("discoverInputs = %+v, %v", in, err)
+	}
+	if _, err := discoverInputs(filepath.Join(dir, "missing")); err == nil {
+		t.Fatal("missing directory must fail")
 	}
 }

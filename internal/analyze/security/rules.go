@@ -232,7 +232,9 @@ func libraryRules() []Detector {
 		resourceRule{
 			id: "SEC-EC2-IMDSV2-001", title: "EC2 instance allows IMDSv1", controls: cis("5.6"), types: []string{"aws_instance"},
 			match: func(r tfstate.Resource, _ *index) (string, bool) {
-				if b, ok := firstBlock(r, "metadata_options"); ok && asString(b["http_tokens"]) == "required" {
+				if b, ok := firstBlock(r, "metadata_options"); ok && (asString(b["http_tokens"]) == "required" || asString(b["http_endpoint"]) == "disabled") {
+					// IMDSv2 enforced, or the metadata service is switched off
+					// entirely, so there is no IMDSv1 to exploit.
 					return "", false
 				}
 				return "does not set metadata_options.http_tokens = \"required\"", true
