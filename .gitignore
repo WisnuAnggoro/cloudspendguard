@@ -11,3 +11,8 @@ coverage.out
 tmp/
 dist/
 .csg/
+.venv/
+__pycache__/
+*.pyc
+/csg.sarif
+/out.html

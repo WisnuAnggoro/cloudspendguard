@@ -1,0 +1,141 @@
+{
+  "description": "Ground-truth labels for the Unit 6 detection experiment. Each entry says that the resource has a defect of the given category. Every other (resource, category) pair with a matching resource type is a negative.",
+  "labels": [
+    {
+      "address": "aws_cloudtrail.no_kms",
+      "category": "CT-KMS"
+    },
+    {
+      "address": "aws_cloudtrail.weak",
+      "category": "CT-KMS"
+    },
+    {
+      "address": "aws_cloudtrail.single_region",
+      "category": "CT-MULTIREGION"
+    },
+    {
+      "address": "aws_cloudtrail.weak",
+      "category": "CT-MULTIREGION"
+    },
+    {
+      "address": "aws_cloudtrail.no_validation",
+      "category": "CT-VALIDATION"
+    },
+    {
+      "address": "aws_cloudtrail.weak",
+      "category": "CT-VALIDATION"
+    },
+    {
+      "address": "aws_ebs_volume.logs",
+      "category": "EBS-ENCRYPT"
+    },
+    {
+      "address": "aws_ebs_volume.param",
+      "category": "EBS-ENCRYPT"
+    },
+    {
+      "address": "aws_ebs_volume.scratch",
+      "category": "EBS-ENCRYPT"
+    },
+    {
+      "address": "aws_instance.endpoint_only",
+      "category": "EC2-IMDSV2"
+    },
+    {
+      "address": "aws_instance.optional",
+      "category": "EC2-IMDSV2"
+    },
+    {
+      "address": "aws_instance.unset",
+      "category": "EC2-IMDSV2"
+    },
+    {
+      "address": "aws_efs_file_system.legacy",
+      "category": "EFS-ENCRYPT"
+    },
+    {
+      "address": "aws_efs_file_system.shared",
+      "category": "EFS-ENCRYPT"
+    },
+    {
+      "address": "aws_iam_policy.admin",
+      "category": "IAM-ADMIN"
+    },
+    {
+      "address": "aws_iam_policy.admin_via_data",
+      "category": "IAM-ADMIN"
+    },
+    {
+      "address": "aws_iam_role_policy.admin_list",
+      "category": "IAM-ADMIN"
+    },
+    {
+      "address": "aws_kms_key.default",
+      "category": "KMS-ROTATION"
+    },
+    {
+      "address": "aws_kms_key.static",
+      "category": "KMS-ROTATION"
+    },
+    {
+      "address": "aws_db_instance.a",
+      "category": "RDS-ENCRYPT"
+    },
+    {
+      "address": "aws_db_instance.c",
+      "category": "RDS-ENCRYPT"
+    },
+    {
+      "address": "aws_db_instance.f",
+      "category": "RDS-ENCRYPT"
+    },
+    {
+      "address": "aws_db_instance.b",
+      "category": "RDS-PUBLIC"
+    },
+    {
+      "address": "aws_db_instance.c",
+      "category": "RDS-PUBLIC"
+    },
+    {
+      "address": "aws_s3_bucket_public_access_block.open_acls",
+      "category": "S3-PUBLIC"
+    },
+    {
+      "address": "aws_s3_bucket_public_access_block.open_all",
+      "category": "S3-PUBLIC"
+    },
+    {
+      "address": "aws_security_group.all_ports_world",
+      "category": "SG-ADMIN"
+    },
+    {
+      "address": "aws_security_group.rdp_world",
+      "category": "SG-ADMIN"
+    },
+    {
+      "address": "aws_security_group.ssh_world",
+      "category": "SG-ADMIN"
+    },
+    {
+      "address": "aws_security_group.ssh_world_v6",
+      "category": "SG-ADMIN"
+    },
+    {
+      "address": "aws_security_group_rule.ssh_legacy_world",
+      "category": "SG-ADMIN"
+    },
+    {
+      "address": "aws_vpc_security_group_ingress_rule.ssh_rule_world",
+      "category": "SG-ADMIN"
+    },
+    {
+      "address": "aws_vpc.silent",
+      "category": "VPC-FLOWLOGS"
+    },
+    {
+      "address": "aws_vpc.silent2",
+      "category": "VPC-FLOWLOGS"
+    }
+  ]
+}

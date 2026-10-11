@@ -2,7 +2,7 @@
 
 > Unified FinOps + Cloud Security Posture CLI for AWS. Local-first. Written in Go.
 
-**Status:** Unit 5 (Week 5), `v0.3.0-algo`. The full rule library (15 cost rules and 20 security rules mapped to CIS AWS Foundations v3.0.0), an STL plus Isolation Forest cost-anomaly detector, the joint prioritizer with per-component scores, and LLM-assisted Terraform remediation behind an independent verifier (`csg remediate`). Ollama is the default backend, so nothing leaves the machine. Core packages have 97% statement coverage against a 90% gate. See [`CHANGELOG.md`](CHANGELOG.md), the [demo runbook](docs/demo.md), and [`docs/gantt.mmd`](docs/gantt.mmd) for the remaining schedule.
+**Status:** Unit 6 (Week 6), `v0.6.0-beta`. One command, `csg run`, now goes from exports to an HTML, Markdown, JSON, or SARIF report, and the detection experiment against tfsec and Checkov is in [`docs/evaluation.md`](docs/evaluation.md). The core is unchanged from `v0.3.0-algo`: the full rule library (15 cost rules and 20 security rules mapped to CIS AWS Foundations v3.0.0), an STL plus Isolation Forest cost-anomaly detector, the joint prioritizer with per-component scores, and LLM-assisted Terraform remediation behind an independent verifier (`csg remediate`). Ollama is the default backend, so nothing leaves the machine. Core packages have 97% statement coverage against a 90% gate. See [`CHANGELOG.md`](CHANGELOG.md), the [demo runbook](docs/demo.md), and [`docs/gantt.mmd`](docs/gantt.mmd) for the remaining schedule.
 
 CloudSpendGuard produces a **single prioritized backlog** of remediation actions where each item shows both its **projected monthly savings** and **security-risk reduction**, so DevOps, FinOps, and Security teams stop working from three different dashboards.
 
@@ -84,12 +84,22 @@ Security (20), CIS AWS Foundations Benchmark v3.0.0:
 Rules combine Terraform state (or `*.tf` files) with CloudTrail evidence of
 the same change made outside Terraform.
 
-### Planned CLI (later units)
+### One command, one report (v0.6.0)
 
 ```bash
-csg run --sample --report ./out.html                 # Unit 6
-csg report --format sarif --out ./csg.sarif          # Unit 6
+csg run --sample --report ./out.html                       # bundled sample, no AWS credentials
+csg run --input ./my-account --profile security --report ./report.html --stats
+csg run --input ./my-account --report ./csg.sarif --sarif-uri infra/main.tf
+csg report --db .csg/csg.db --format sarif --out ./csg.sarif   # re-render a stored backlog
 ```
+
+An example report is committed at [`docs/sample-report.html`](docs/sample-report.html). Run it in Docker:
+
+```bash
+make docker-run      # writes ./out/report.html
+```
+
+Install, environment variables, Docker, and the scheduled AWS deployment: [`docs/install.md`](docs/install.md).
 
 ## Local development
 
@@ -102,6 +112,8 @@ make cover-gate   # 90% coverage gate on analyzers and algorithms
 make golden       # rewrite LLM golden diffs after an intended change
 make lint         # go vet + golangci-lint v2
 make ci           # everything GitHub Actions runs, locally
+make bench        # NFR1 timings on synthetic CUR files
+make eval         # precision and recall against tfsec and Checkov
 ```
 
 ## Security & privacy

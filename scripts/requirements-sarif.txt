@@ -1,0 +1,3 @@
+# Only needed by the optional SARIF validation script, not by the Go CLI.
+jsonschema>=4.17,<5
+certifi

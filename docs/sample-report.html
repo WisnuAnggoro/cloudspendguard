@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CloudSpendGuard Report</title>
+<style>
+:root { --ink:#1b2430; --muted:#5b6675; --line:#d9dee5; --bg:#f6f8fa; --card:#fff; --accent:#0b5cad;
+  --critical:#8f1d1d; --high:#b3401a; --medium:#8a6100; --low:#1f6b3a; --cost:#33507a; }
+* { box-sizing:border-box; }
+body { margin:0; font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; color:var(--ink); background:var(--bg); }
+main { max-width:1100px; margin:0 auto; padding:24px 20px 48px; }
+h1 { margin:0 0 4px; font-size:26px; }
+h2 { margin:32px 0 12px; font-size:19px; }
+.meta { color:var(--muted); margin:0 0 20px; }
+.cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:12px; }
+.card { background:var(--card); border:1px solid var(--line); border-radius:8px; padding:14px 16px; }
+.card .n { font-size:28px; font-weight:650; }
+.card .l { color:var(--muted); font-size:13px; }
+table { width:100%; border-collapse:collapse; background:var(--card); border:1px solid var(--line); border-radius:8px; overflow:hidden; font-size:14px; }
+th, td { padding:8px 10px; text-align:left; border-bottom:1px solid var(--line); vertical-align:top; }
+th { background:#eef1f5; font-weight:600; white-space:nowrap; }
+td.num, th.num { text-align:right; font-variant-numeric:tabular-nums; }
+code { font:13px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; background:#eef1f5; padding:1px 5px; border-radius:4px; overflow-wrap:anywhere; }
+code.rule { white-space:nowrap; }
+.badge { display:inline-block; padding:1px 8px; border-radius:10px; color:#fff; font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:.03em; }
+.badge.critical { background:var(--critical); } .badge.high { background:var(--high); }
+.badge.medium { background:var(--medium); } .badge.low { background:var(--low); }
+.badge.info, .badge.cost { background:var(--cost); }
+.bars { display:flex; gap:4px; align-items:center; min-width:150px; }
+.bar { flex:1; height:8px; background:#e3e7ec; border-radius:4px; overflow:hidden; }
+.bar > i { display:block; height:100%; }
+.bar.s > i { background:#2c7a4b; } .bar.r > i { background:#b3401a; } .bar.b > i { background:#6b5b95; }
+.legend { color:var(--muted); font-size:13px; margin:8px 0 0; }
+.finding { background:var(--card); border:1px solid var(--line); border-left:5px solid var(--cost); border-radius:8px; padding:14px 16px; margin:12px 0; break-inside:avoid; }
+.finding.critical { border-left-color:var(--critical); } .finding.high { border-left-color:var(--high); }
+.finding.medium { border-left-color:var(--medium); } .finding.low { border-left-color:var(--low); }
+.finding h3 { margin:0 0 6px; font-size:16px; }
+.finding dl { margin:8px 0 0; display:grid; grid-template-columns:110px 1fr; gap:4px 12px; }
+.finding dt { color:var(--muted); } .finding dd { margin:0; }
+.note { color:var(--muted); font-size:13px; margin-top:28px; }
+@media print { body { background:#fff; } main { padding:0; } }
+</style>
+</head>
+<body>
+<main>
+<h1>CloudSpendGuard Report</h1>
+<p class="meta">Generated 2026-10-09 20:04 UTC by csg 0.6.0-beta on the bundled sample account. Input: 392 CUR line items, 8 CloudTrail events, 22 Terraform resources.<br>
+Profile <code>devops</code>: score = 0.4 &times; savings + 0.5 &times; risk &minus; 0.3 &times; blast radius, each term normalized to 0 to 1.</p>
+
+<section class="cards" aria-label="Summary">
+<div class="card"><div class="n">23</div><div class="l">findings</div></div>
+<div class="card"><div class="n">12</div><div class="l">security</div></div>
+<div class="card"><div class="n">11</div><div class="l">cost</div></div>
+<div class="card"><div class="n">$785.55</div><div class="l">projected savings per month</div></div>
+<div class="card"><div class="n">3</div><div class="l">critical</div></div><div class="card"><div class="n">4</div><div class="l">high</div></div><div class="card"><div class="n">8</div><div class="l">medium</div></div><div class="card"><div class="n">3</div><div class="l">low</div></div><div class="card"><div class="n">5</div><div class="l">info</div></div>
+</section>
+
+
+<h2>Prioritized backlog</h2>
+<table>
+<thead><tr><th class="num">#</th><th class="num">Score</th><th>Savings / Risk / Blast</th><th>Kind</th><th>Severity</th><th>Rule</th><th>Resource</th><th class="num">Savings per month</th><th>Controls</th></tr></thead>
+<tbody>
+<tr>
+<td class="num">1</td>
+<td class="num">0.476</td>
+<td><div class="bars" title="Savings 0.852, risk 0.300, blast radius 0.050">
+<span class="bar s"><i style="width:85%"></i></span>
+<span class="bar r"><i style="width:30%"></i></span>
+<span class="bar b"><i style="width:5%"></i></span></div></td>
+<td>cost</td>
+<td><span class="badge high">high</span></td>
+<td><code class="rule">COST-ANOMALY-001</code></td>
+<td><code>AmazonEC2/booking</code></td>
+<td class="num">$146.88</td>
+<td>-</td>
+</tr><tr>
+<td class="num">2</td>
+<td class="num">0.360</td>
+<td><div class="bars" title="Savings 0.000, risk 0.900, blast radius 0.300">
+<span class="bar s"><i style="width:0%"></i></span>
+<span class="bar r"><i style="width:90%"></i></span>
+<span class="bar b"><i style="width:30%"></i></span></div></td>
+<td>security</td>
+<td><span class="badge critical">critical</span></td>
+<td><code class="rule">SEC-S3-PUBLIC-001</code></td>
+<td><code>tui-demo-booking-exports</code></td>
+<td class="num">$0.00</td>
+<td>CIS 2.1.4</td>
+</tr><tr>
+<td class="num">3</td>
+<td class="num">0.320</td>
+<td><div class="bars" title="Savings 0.000, risk 0.850, blast radius 0.350">
+<span class="bar s"><i style="width:0%"></i></span>
+<span class="bar r"><i style="width:85%"></i></span>
+<span class="bar b"><i style="width:35%"></i></span></div></td>
+<td>security</td>
+<td><span class="badge critical">critical</span></td>
+<td><code class="rule">SEC-RDS-PUBLIC-001</code></td>
+<td><code>analytics-staging</code></td>
+<td class="num">$0.00</td>
+<td>CIS 2.3.3</td>
+</tr><tr>
+<td class="num">4</td>
+<td class="num">0.310</td>
+<td><div class="bars" title="Savings 0.000, risk 0.800, blast radius 0.300">
+<span class="bar s"><i style="width:0%"></i></span>
+<span class="bar r"><i style="width:80%"></i></span>
+<span class="bar b"><i style="width:30%"></i></span></div></td>
+<td>security</td>
+<td><span class="badge critical">critical</span></td>
+<td><code class="rule">SEC-SG-ADMIN-IPV4-001</code></td>
+<td><code>sg-0a1b2c3d4e5f60022</code></td>
+<td class="num">$0.00</td>
+<td>CIS 5.2</td>
+</tr><tr>
+<td class="num">5</td>
+<td class="num">0.295</td>
+<td><div class="bars" title="Savings 1.000, risk 0.000, blast radius 0.350">
+<span class="bar s"><i style="width:100%"></i></span>
+<span class="bar r"><i style="width:0%"></i></span>
+<span class="bar b"><i style="width:35%"></i></span></div></td>
+<td>cost</td>
+<td><span class="badge medium">medium</span></td>
+<td><code class="rule">COST-RDS-NONPROD-SIZE-001</code></td>
+<td><code>analytics-staging</code></td>
+<td class="num">$350.40</td>
+<td>-</td>
+</tr><tr>
+<td class="num">6</td>
+<td class="num">0.293</td>
+<td><div class="bars" title="Savings 0.882, risk 0.000, blast radius 0.200">
+<span class="bar s"><i style="width:88%"></i></span>
+<span class="bar r"><i style="width:0%"></i></span>
+<span class="bar b"><i style="width:20%"></i></span></div></td>
+<td>cost</td>
+<td><span class="badge low">low</span></td>
+<td><code class="rule">COST-RDS-NONPROD-MULTIAZ-001</code></td>
+<td><code>analytics-staging</code></td>
+<td class="num">$175.20</td>
+<td>-</td>
+</tr><tr>
+<td class="num">7</td>
+<td class="num">0.265</td>
+<td><div class="bars" title="Savings 0.000, risk 0.650, blast radius 0.200">
+<span class="bar s"><i style="width:0%"></i></span>
+<span class="bar r"><i style="width:65%"></i></span>
+<span class="bar b"><i style="width:20%"></i></span></div></td>
+<td>security</td>
+<td><span class="badge high">high</span></td>
+<td><code class="rule">SEC-EC2-IMDSV2-001</code></td>
+<td><code>i-0a1b2c3d4e5f60042</code></td>
+<td class="num">$0.00</td>
+<td>CIS 5.6</td>
+</tr><tr>
+<td class="num">8</td>
+<td class="num">0.245</td>
+<td><div class="bars" title="Savings 0.000, risk 0.850, blast radius 0.600">
+<span class="bar s"><i style="width:0%"></i></span>
+<span class="bar r"><i style="width:85%"></i></span>
+<span class="bar b"><i style="width:60%"></i></span></div></td>
+<td>security</td>
+<td><span class="badge high">high</span></td>
+<td><code class="rule">SEC-IAM-ADMIN-001</code></td>
+<td><code>arn:aws:iam::111122223333:policy/break-glass-admin</code></td>
+<td class="num">$0.00</td>
+<td>CIS 1.16</td>
+</tr><tr>
+<td class="num">9</td>
+<td class="num">0.245</td>
+<td><div class="bars" title="Savings 0.000, risk 0.850, blast radius 0.600">
+<span class="bar s"><i style="width:0%"></i></span>
+<span class="bar r"><i style="width:85%"></i></span>
+<span class="bar b"><i style="width:60%"></i></span></div></td>
+<td>security</td>
+<td><span class="badge high">high</span></td>
+<td><code class="rule">SEC-IAM-ADMIN-001</code></td>
+<td><code>legacy-ci-deployer</code></td>
+<td class="num">$0.00</td>
+<td>CIS 1.16</td>
+</tr><tr>
+<td class="num">10</td>
+<td class="num">0.244</td>
+<td><div class="bars" title="Savings 0.636, risk 0.100, blast radius 0.200">
+<span class="bar s"><i style="width:64%"></i></span>
+<span class="bar r"><i style="width:10%"></i></span>
+<span class="bar b"><i style="width:20%"></i></span></div></td>
+<td>cost</td>
+<td><span class="badge low">low</span></td>
+<td><code class="rule">COST-EBS-IDLE-001</code></td>
+<td><code>vol-0a1b2c3d4e5f60099</code></td>
+<td class="num">$40.55</td>
+<td>-</td>
+</tr><tr>
+<td class="num">11</td>
+<td class="num">0.210</td>
+<td><div class="bars" title="Savings 0.000, risk 0.450, blast radius 0.050">
+<span class="bar s"><i style="width:0%"></i></span>
+<span class="bar r"><i style="width:45%"></i></span>
+<span class="bar b"><i style="width:5%"></i></span></div></td>
+<td>security</td>
+<td><span class="badge medium">medium</span></td>
+<td><code class="rule">SEC-VPC-FLOWLOGS-001</code></td>
+<td><code>vpc-0a1b2c3d4e5f60100</code></td>
+<td class="num">$0.00</td>
+<td>CIS 3.7</td>
+</tr><tr>
+<td class="num">12</td>
+<td class="num">0.185</td>
+<td><div class="bars" title="Savings 0.000, risk 0.400, blast radius 0.050">
+<span class="bar s"><i style="width:0%"></i></span>
+<span class="bar r"><i style="width:40%"></i></span>
+<span class="bar b"><i style="width:5%"></i></span></div></td>
+<td>security</td>
+<td><span class="badge medium">medium</span></td>
+<td><code class="rule">SEC-CT-VALIDATION-001</code></td>
+<td><code>org-trail</code></td>
+<td class="num">$0.00</td>
+<td>CIS 3.2</td>
+</tr><tr>
+<td class="num">13</td>
+<td class="num">0.160</td>
+<td><div class="bars" title="Savings 0.000, risk 0.350, blast radius 0.050">
+<span class="bar s"><i style="width:0%"></i></span>
+<span class="bar r"><i style="width:35%"></i></span>
+<span class="bar b"><i style="width:5%"></i></span></div></td>
+<td>security</td>
+<td><span class="badge medium">medium</span></td>
+<td><code class="rule">SEC-KMS-ROTATION-001</code></td>
+<td><code>1234abcd-12ab-34cd-56ef-1234567890ab</code></td>
+<td class="num">$0.00</td>
+<td>CIS 3.6</td>
+</tr><tr>
+<td class="num">14</td>
+<td class="num">0.155</td>
+<td><div class="bars" title="Savings 0.000, risk 0.400, blast radius 0.150">
+<span class="bar s"><i style="width:0%"></i></span>
+<span class="bar r"><i style="width:40%"></i></span>
+<span class="bar b"><i style="width:15%"></i></span></div></td>
+<td>security</td>
+<td><span class="badge medium">medium</span></td>
+<td><code class="rule">SEC-S3-TLS-001</code></td>
+<td><code>tui-demo-access-logs</code></td>
+<td class="num">$0.00</td>
+<td>CIS 2.1.1</td>
+</tr><tr>
+<td class="num">15</td>
+<td class="num">0.155</td>
+<td><div class="bars" title="Savings 0.000, risk 0.400, blast radius 0.150">
+<span class="bar s"><i style="width:0%"></i></span>
+<span class="bar r"><i style="width:40%"></i></span>
+<span class="bar b"><i style="width:15%"></i></span></div></td>
+<td>security</td>
+<td><span class="badge medium">medium</span></td>
+<td><code class="rule">SEC-S3-TLS-001</code></td>
+<td><code>tui-demo-booking-exports</code></td>
+<td class="num">$0.00</td>
+<td>CIS 2.1.1</td>
+</tr><tr>
+<td class="num">16</td>
+<td class="num">0.130</td>
+<td><div class="bars" title="Savings 0.000, risk 0.350, blast radius 0.150">
+<span class="bar s"><i style="width:0%"></i></span>
+<span class="bar r"><i style="width:35%"></i></span>
+<span class="bar b"><i style="width:15%"></i></span></div></td>
+<td>security</td>
+<td><span class="badge medium">medium</span></td>
+<td><code class="rule">SEC-CT-KMS-001</code></td>
+<td><code>org-trail</code></td>
+<td class="num">$0.00</td>
+<td>CIS 3.5</td>
+</tr><tr>
+<td class="num">17</td>
+<td class="num">0.115</td>
+<td><div class="bars" title="Savings 0.601, risk 0.050, blast radius 0.500">
+<span class="bar s"><i style="width:60%"></i></span>
+<span class="bar r"><i style="width:5%"></i></span>
+<span class="bar b"><i style="width:50%"></i></span></div></td>
+<td>cost</td>
+<td><span class="badge medium">medium</span></td>
+<td><code class="rule">COST-NAT-IDLE-001</code></td>
+<td><code>nat-0a1b2c3d4e5f60020</code></td>
+<td class="num">$32.85</td>
+<td>-</td>
+</tr><tr>
+<td class="num">18</td>
+<td class="num">0.099</td>
+<td><div class="bars" title="Savings 0.485, risk 0.050, blast radius 0.400">
+<span class="bar s"><i style="width:49%"></i></span>
+<span class="bar r"><i style="width:5%"></i></span>
+<span class="bar b"><i style="width:40%"></i></span></div></td>
+<td>cost</td>
+<td><span class="badge low">low</span></td>
+<td><code class="rule">COST-EC2-PREVGEN-001</code></td>
+<td><code>i-0a1b2c3d4e5f60042</code></td>
+<td class="num">$16.21</td>
+<td>-</td>
+</tr><tr>
+<td class="num">19</td>
+<td class="num">0.055</td>
+<td><div class="bars" title="Savings 0.262, risk 0.050, blast radius 0.250">
+<span class="bar s"><i style="width:26%"></i></span>
+<span class="bar r"><i style="width:5%"></i></span>
+<span class="bar b"><i style="width:25%"></i></span></div></td>
+<td>cost</td>
+<td><span class="badge info">info</span></td>
+<td><code class="rule">COST-EIP-UNATTACHED-001</code></td>
+<td><code>eipalloc-0a1b2c3d4e5f60077</code></td>
+<td class="num">$3.65</td>
+<td>-</td>
+</tr><tr>
+<td class="num">20</td>
+<td class="num">0.048</td>
+<td><div class="bars" title="Savings 0.244, risk 0.050, blast radius 0.250">
+<span class="bar s"><i style="width:24%"></i></span>
+<span class="bar r"><i style="width:5%"></i></span>
+<span class="bar b"><i style="width:25%"></i></span></div></td>
+<td>cost</td>
+<td><span class="badge info">info</span></td>
+<td><code class="rule">COST-S3-NO-LIFECYCLE-001</code></td>
+<td><code>tui-demo-booking-exports</code></td>
+<td class="num">$3.19</td>
+<td>-</td>
+</tr><tr>
+<td class="num">21</td>
+<td class="num">0.033</td>
+<td><div class="bars" title="Savings 0.156, risk 0.000, blast radius 0.100">
+<span class="bar s"><i style="width:16%"></i></span>
+<span class="bar r"><i style="width:0%"></i></span>
+<span class="bar b"><i style="width:10%"></i></span></div></td>
+<td>cost</td>
+<td><span class="badge info">info</span></td>
+<td><code class="rule">COST-LOGS-RETENTION-001</code></td>
+<td><code>/booking/api</code></td>
+<td class="num">$1.50</td>
+<td>-</td>
+</tr><tr>
+<td class="num">22</td>
+<td class="num">0.005</td>
+<td><div class="bars" title="Savings 0.462, risk 0.000, blast radius 0.600">
+<span class="bar s"><i style="width:46%"></i></span>
+<span class="bar r"><i style="width:0%"></i></span>
+<span class="bar b"><i style="width:60%"></i></span></div></td>
+<td>cost</td>
+<td><span class="badge info">info</span></td>
+<td><code class="rule">COST-EC2-GRAVITON-001</code></td>
+<td><code>i-0a1b2c3d4e5f60001</code></td>
+<td class="num">$14.02</td>
+<td>-</td>
+</tr><tr>
+<td class="num">23</td>
+<td class="num">0.001</td>
+<td><div class="bars" title="Savings 0.127, risk 0.050, blast radius 0.250">
+<span class="bar s"><i style="width:13%"></i></span>
+<span class="bar r"><i style="width:5%"></i></span>
+<span class="bar b"><i style="width:25%"></i></span></div></td>
+<td>cost</td>
+<td><span class="badge info">info</span></td>
+<td><code class="rule">COST-S3-NO-LIFECYCLE-001</code></td>
+<td><code>tui-demo-access-logs</code></td>
+<td class="num">$1.10</td>
+<td>-</td>
+</tr>
+</tbody>
+</table>
+<p class="legend">Bars show the normalized savings (green), risk reduction (red), and blast radius (purple) components of the score, so every rank can be audited.</p>
+
+
+<h2>Cost anomalies</h2>
+<ul><li><code>AmazonEC2/booking</code>: 2026-09-19, 2026-09-20</li></ul>
+
+<h2>Remediation cards</h2>
+<article class="finding high">
+<h3>1. Cost anomaly in AmazonEC2 (team booking) <span class="badge high">high</span></h3>
+<dl>
+<dt>Resource</dt><dd><code>AmazonEC2/booking</code></dd>
+<dt>Evidence</dt><dd>Spend on 2026-09-19 to 2026-09-20 was USD 152.26 against an STL expectation of USD 5.38 (USD 146.88 above normal; robust z = 12.0, isolation score = 0.79). Both the statistical and the machine-learning signal agree.</dd>
+<dt>Suggested fix</dt><dd>Investigate 2026-09-19 to 2026-09-20: csg query &#34;SELECT usage_type, resource_id, ROUND(SUM(cost),2) FROM cur WHERE service = &#39;AmazonEC2&#39; AND usage_start &gt;= &#39;2026-09-19&#39; GROUP BY 1, 2 ORDER BY 3 DESC&#34; and check CloudTrail for the same window. <em>(investigate)</em></dd>
+<dt>Controls</dt><dd>-</dd>
+<dt>Impact</dt><dd>$146.88 per month; risk reduction 0.300; blast radius 0.050</dd>
+</dl>
+</article><article class="finding critical">
+<h3>2. S3 bucket is publicly accessible <span class="badge critical">critical</span></h3>
+<dl>
+<dt>Resource</dt><dd><code>tui-demo-booking-exports</code> (<code>aws_s3_bucket_public_access_block.exports</code>)</dd>
+<dt>Evidence</dt><dd>Terraform aws_s3_bucket_acl.exports sets acl = &#34;public-read&#34;; Terraform aws_s3_bucket_public_access_block.exports disables block_public_acls, ignore_public_acls; CloudTrail DeleteBucketPublicAccessBlock at 2026-09-09 14:40Z by arn:aws:iam::111122223333:user/bob removed Block Public Access; CloudTrail PutBucketAcl at 2026-09-09 14:41Z by arn:aws:iam::111122223333:user/bob granted public access.</dd>
+<dt>Suggested fix</dt><dd>Set all four aws_s3_bucket_public_access_block arguments to true and remove public ACL grants; serve public content through CloudFront with origin access control. <em>(modify)</em></dd>
+<dt>Controls</dt><dd>CIS 2.1.4</dd>
+<dt>Impact</dt><dd>$0.00 per month; risk reduction 0.900; blast radius 0.300</dd>
+</dl>
+</article><article class="finding critical">
+<h3>3. RDS instance is publicly accessible <span class="badge critical">critical</span></h3>
+<dl>
+<dt>Resource</dt><dd><code>analytics-staging</code> (<code>aws_db_instance.analytics_staging</code>)</dd>
+<dt>Evidence</dt><dd>Terraform aws_db_instance.analytics_staging sets publicly_accessible = true.</dd>
+<dt>Suggested fix</dt><dd>Set publicly_accessible = false and reach the database through a bastion, VPN, or RDS Proxy. <em>(modify)</em></dd>
+<dt>Controls</dt><dd>CIS 2.3.3</dd>
+<dt>Impact</dt><dd>$0.00 per month; risk reduction 0.850; blast radius 0.350</dd>
+</dl>
+</article><article class="finding critical">
+<h3>4. Security group allows SSH or RDP from 0.0.0.0/0 <span class="badge critical">critical</span></h3>
+<dl>
+<dt>Resource</dt><dd><code>sg-0a1b2c3d4e5f60022</code> (<code>aws_security_group.bastion</code>)</dd>
+<dt>Evidence</dt><dd>Terraform aws_security_group.bastion allows ports 22-22 from 0.0.0.0/0.</dd>
+<dt>Suggested fix</dt><dd>Restrict the ingress rule to a corporate CIDR or remove it and use SSM Session Manager. <em>(modify)</em></dd>
+<dt>Controls</dt><dd>CIS 5.2</dd>
+<dt>Impact</dt><dd>$0.00 per month; risk reduction 0.800; blast radius 0.300</dd>
+</dl>
+</article><article class="finding medium">
+<h3>5. Large RDS instance class in a non-production environment <span class="badge medium">medium</span></h3>
+<dl>
+<dt>Resource</dt><dd><code>analytics-staging</code> (<code>aws_db_instance.analytics_staging</code>)</dd>
+<dt>Evidence</dt><dd>analytics-staging (aws_db_instance.analytics_staging): class db.r5.2xlarge is oversized for env=staging. Fixing it saves USD 350.40/month (50% of the cost observed in CUR).</dd>
+<dt>Suggested fix</dt><dd>Downsize instance_class on aws_db_instance.analytics_staging one or two sizes (for example db.t4g.medium) and watch CPU and memory for a week <em>(modify)</em></dd>
+<dt>Controls</dt><dd>-</dd>
+<dt>Impact</dt><dd>$350.40 per month; risk reduction 0.000; blast radius 0.350</dd>
+</dl>
+</article><article class="finding low">
+<h3>6. Multi-AZ RDS in a non-production environment <span class="badge low">low</span></h3>
+<dl>
+<dt>Resource</dt><dd><code>analytics-staging</code> (<code>aws_db_instance.analytics_staging</code>)</dd>
+<dt>Evidence</dt><dd>analytics-staging (aws_db_instance.analytics_staging): multi_az doubles instance cost and is rarely needed outside production (env=staging). Fixing it saves USD 175.20/month after COST-RDS-NONPROD-SIZE-001 is applied to the same resource (USD 350.40 on its own).</dd>
+<dt>Suggested fix</dt><dd>Set multi_az = false on aws_db_instance.analytics_staging <em>(modify)</em></dd>
+<dt>Controls</dt><dd>-</dd>
+<dt>Impact</dt><dd>$175.20 per month; risk reduction 0.000; blast radius 0.200</dd>
+</dl>
+</article><article class="finding high">
+<h3>7. EC2 instance allows IMDSv1 <span class="badge high">high</span></h3>
+<dl>
+<dt>Resource</dt><dd><code>i-0a1b2c3d4e5f60042</code> (<code>aws_instance.legacy_reporting</code>)</dd>
+<dt>Evidence</dt><dd>Terraform aws_instance.legacy_reporting does not set metadata_options.http_tokens = &#34;required&#34;.</dd>
+<dt>Suggested fix</dt><dd>Set metadata_options { http_tokens = &#34;required&#34; } so credentials cannot be stolen through SSRF against IMDSv1. <em>(modify)</em></dd>
+<dt>Controls</dt><dd>CIS 5.6</dd>
+<dt>Impact</dt><dd>$0.00 per month; risk reduction 0.650; blast radius 0.200</dd>
+</dl>
+</article><article class="finding high">
+<h3>8. IAM policy grants full administrative access (*:*) <span class="badge high">high</span></h3>
+<dl>
+<dt>Resource</dt><dd><code>arn:aws:iam::111122223333:policy/break-glass-admin</code> (<code>aws_iam_policy.break_glass</code>)</dd>
+<dt>Evidence</dt><dd>Terraform aws_iam_policy.break_glass allows Action &#34;*&#34; on Resource &#34;*&#34;.</dd>
+<dt>Suggested fix</dt><dd>Replace the wildcard statement with the actions the principal actually uses (IAM Access Analyzer policy generation from CloudTrail helps), and require MFA for any remaining break-glass admin role. <em>(modify)</em></dd>
+<dt>Controls</dt><dd>CIS 1.16</dd>
+<dt>Impact</dt><dd>$0.00 per month; risk reduction 0.850; blast radius 0.600</dd>
+</dl>
+</article><article class="finding high">
+<h3>9. IAM policy grants full administrative access (*:*) <span class="badge high">high</span></h3>
+<dl>
+<dt>Resource</dt><dd><code>legacy-ci-deployer</code></dd>
+<dt>Evidence</dt><dd>CloudTrail PutRolePolicy at 2026-09-15 22:03Z by arn:aws:iam::111122223333:user/legacy-ci attached a &#34;*:*&#34; policy.</dd>
+<dt>Suggested fix</dt><dd>Replace the wildcard statement with the actions the principal actually uses (IAM Access Analyzer policy generation from CloudTrail helps), and require MFA for any remaining break-glass admin role. <em>(modify)</em></dd>
+<dt>Controls</dt><dd>CIS 1.16</dd>
+<dt>Impact</dt><dd>$0.00 per month; risk reduction 0.850; blast radius 0.600</dd>
+</dl>
+</article><article class="finding low">
+<h3>10. Unattached EBS volume <span class="badge low">low</span></h3>
+<dl>
+<dt>Resource</dt><dd><code>vol-0a1b2c3d4e5f60099</code></dd>
+<dt>Evidence</dt><dd>vol-0a1b2c3d4e5f60099 (gp3, aws_ebs_volume.etl_scratch) has no aws_volume_attachment and costs USD 40.55/month observed in CUR. Snapshot it if the data is needed, then delete the volume.</dd>
+<dt>Suggested fix</dt><dd>aws ec2 create-snapshot --volume-id vol-0a1b2c3d4e5f60099, then remove aws_ebs_volume.etl_scratch from Terraform <em>(-)</em></dd>
+<dt>Controls</dt><dd>-</dd>
+<dt>Impact</dt><dd>$40.55 per month; risk reduction 0.100; blast radius 0.200</dd>
+</dl>
+</article><article class="finding medium">
+<h3>11. VPC has no flow logs <span class="badge medium">medium</span></h3>
+<dl>
+<dt>Resource</dt><dd><code>vpc-0a1b2c3d4e5f60100</code> (<code>aws_vpc.main</code>)</dd>
+<dt>Evidence</dt><dd>Terraform aws_vpc.main has no aws_flow_log attached.</dd>
+<dt>Suggested fix</dt><dd>Add an aws_flow_log for the VPC with traffic_type = &#34;REJECT&#34; (or ALL) to CloudWatch Logs or S3. <em>(investigate)</em></dd>
+<dt>Controls</dt><dd>CIS 3.7</dd>
+<dt>Impact</dt><dd>$0.00 per month; risk reduction 0.450; blast radius 0.050</dd>
+</dl>
+</article><article class="finding medium">
+<h3>12. CloudTrail log file validation is disabled <span class="badge medium">medium</span></h3>
+<dl>
+<dt>Resource</dt><dd><code>org-trail</code> (<code>aws_cloudtrail.main</code>)</dd>
+<dt>Evidence</dt><dd>Terraform aws_cloudtrail.main sets enable_log_file_validation = false.</dd>
+<dt>Suggested fix</dt><dd>Set enable_log_file_validation = true so tampering with log files is detectable. <em>(modify)</em></dd>
+<dt>Controls</dt><dd>CIS 3.2</dd>
+<dt>Impact</dt><dd>$0.00 per month; risk reduction 0.400; blast radius 0.050</dd>
+</dl>
+</article><article class="finding medium">
+<h3>13. KMS key rotation is disabled <span class="badge medium">medium</span></h3>
+<dl>
+<dt>Resource</dt><dd><code>1234abcd-12ab-34cd-56ef-1234567890ab</code> (<code>aws_kms_key.exports</code>)</dd>
+<dt>Evidence</dt><dd>Terraform aws_kms_key.exports sets enable_key_rotation = false on a symmetric key.</dd>
+<dt>Suggested fix</dt><dd>Set enable_key_rotation = true. <em>(modify)</em></dd>
+<dt>Controls</dt><dd>CIS 3.6</dd>
+<dt>Impact</dt><dd>$0.00 per month; risk reduction 0.350; blast radius 0.050</dd>
+</dl>
+</article><article class="finding medium">
+<h3>14. S3 bucket accepts unencrypted (HTTP) requests <span class="badge medium">medium</span></h3>
+<dl>
+<dt>Resource</dt><dd><code>tui-demo-access-logs</code> (<code>aws_s3_bucket.logs</code>)</dd>
+<dt>Evidence</dt><dd>Terraform aws_s3_bucket.logs has no bucket policy denying aws:SecureTransport = false.</dd>
+<dt>Suggested fix</dt><dd>Add a Deny statement for all principals when aws:SecureTransport is false to the bucket policy. <em>(modify)</em></dd>
+<dt>Controls</dt><dd>CIS 2.1.1</dd>
+<dt>Impact</dt><dd>$0.00 per month; risk reduction 0.400; blast radius 0.150</dd>
+</dl>
+</article><article class="finding medium">
+<h3>15. S3 bucket accepts unencrypted (HTTP) requests <span class="badge medium">medium</span></h3>
+<dl>
+<dt>Resource</dt><dd><code>tui-demo-booking-exports</code> (<code>aws_s3_bucket.exports</code>)</dd>
+<dt>Evidence</dt><dd>Terraform aws_s3_bucket.exports has no bucket policy denying aws:SecureTransport = false.</dd>
+<dt>Suggested fix</dt><dd>Add a Deny statement for all principals when aws:SecureTransport is false to the bucket policy. <em>(modify)</em></dd>
+<dt>Controls</dt><dd>CIS 2.1.1</dd>
+<dt>Impact</dt><dd>$0.00 per month; risk reduction 0.400; blast radius 0.150</dd>
+</dl>
+</article><article class="finding medium">
+<h3>16. CloudTrail logs are not encrypted with a KMS key <span class="badge medium">medium</span></h3>
+<dl>
+<dt>Resource</dt><dd><code>org-trail</code> (<code>aws_cloudtrail.main</code>)</dd>
+<dt>Evidence</dt><dd>Terraform aws_cloudtrail.main has no kms_key_id.</dd>
+<dt>Suggested fix</dt><dd>Set kms_key_id to a customer-managed KMS key whose policy allows CloudTrail to encrypt. <em>(modify)</em></dd>
+<dt>Controls</dt><dd>CIS 3.5</dd>
+<dt>Impact</dt><dd>$0.00 per month; risk reduction 0.350; blast radius 0.150</dd>
+</dl>
+</article><article class="finding medium">
+<h3>17. Idle NAT gateway <span class="badge medium">medium</span></h3>
+<dl>
+<dt>Resource</dt><dd><code>nat-0a1b2c3d4e5f60020</code></dd>
+<dt>Evidence</dt><dd>nat-0a1b2c3d4e5f60020 bills NAT gateway hours but processed almost no data (USD 0.00 data charge in the window). Removing it saves USD 32.85/month observed in CUR.</dd>
+<dt>Suggested fix</dt><dd>Confirm no private subnet route needs outbound internet (check VPC Flow Logs), then delete the NAT gateway or replace it with VPC endpoints <em>(delete)</em></dd>
+<dt>Controls</dt><dd>-</dd>
+<dt>Impact</dt><dd>$32.85 per month; risk reduction 0.050; blast radius 0.500</dd>
+</dl>
+</article><article class="finding low">
+<h3>18. EC2 instance uses a previous-generation type <span class="badge low">low</span></h3>
+<dl>
+<dt>Resource</dt><dd><code>i-0a1b2c3d4e5f60042</code> (<code>aws_instance.legacy_reporting</code>)</dd>
+<dt>Evidence</dt><dd>i-0a1b2c3d4e5f60042 (aws_instance.legacy_reporting): instance type m4.xlarge is previous generation; m5.xlarge is cheaper and faster. Fixing it saves USD 16.21/month (10% of the cost observed in CUR).</dd>
+<dt>Suggested fix</dt><dd>Change instance_type to m5.xlarge in a maintenance window (requires stop/start) <em>(modify)</em></dd>
+<dt>Controls</dt><dd>-</dd>
+<dt>Impact</dt><dd>$16.21 per month; risk reduction 0.050; blast radius 0.400</dd>
+</dl>
+</article><article class="finding info">
+<h3>19. Unattached Elastic IP <span class="badge info">info</span></h3>
+<dl>
+<dt>Resource</dt><dd><code>eipalloc-0a1b2c3d4e5f60077</code></dd>
+<dt>Evidence</dt><dd>eipalloc-0a1b2c3d4e5f60077 (aws_eip.legacy_bastion) is allocated but idle (no association in Terraform state; billed as EUW1-PublicIPv4:IdleAddress) and costs USD 3.65/month observed in CUR. Check DNS records before releasing it to avoid a dangling record.</dd>
+<dt>Suggested fix</dt><dd>aws ec2 release-address --allocation-id eipalloc-0a1b2c3d4e5f60077 <em>(-)</em></dd>
+<dt>Controls</dt><dd>-</dd>
+<dt>Impact</dt><dd>$3.65 per month; risk reduction 0.050; blast radius 0.250</dd>
+</dl>
+</article><article class="finding info">
+<h3>20. S3 bucket has no lifecycle policy <span class="badge info">info</span></h3>
+<dl>
+<dt>Resource</dt><dd><code>tui-demo-booking-exports</code> (<code>aws_s3_bucket.exports</code>)</dd>
+<dt>Evidence</dt><dd>tui-demo-booking-exports (aws_s3_bucket.exports): no lifecycle configuration, so objects never move to cheaper storage classes or expire. Fixing it saves USD 3.19/month (30% of the cost observed in CUR).</dd>
+<dt>Suggested fix</dt><dd>Add aws_s3_bucket_lifecycle_configuration for aws_s3_bucket.exports (Intelligent-Tiering after 30 days, expire noncurrent versions) <em>(investigate)</em></dd>
+<dt>Controls</dt><dd>-</dd>
+<dt>Impact</dt><dd>$3.19 per month; risk reduction 0.050; blast radius 0.250</dd>
+</dl>
+</article><article class="finding info">
+<h3>21. CloudWatch log group never expires <span class="badge info">info</span></h3>
+<dl>
+<dt>Resource</dt><dd><code>/booking/api</code> (<code>aws_cloudwatch_log_group.booking_api</code>)</dd>
+<dt>Evidence</dt><dd>/booking/api (aws_cloudwatch_log_group.booking_api): retention_in_days is 0 (never expire), so storage grows without bound. Fixing it saves an estimated USD 1.50/month at list price.</dd>
+<dt>Suggested fix</dt><dd>Set retention_in_days (for example 90) on aws_cloudwatch_log_group.booking_api <em>(modify)</em></dd>
+<dt>Controls</dt><dd>-</dd>
+<dt>Impact</dt><dd>$1.50 per month; risk reduction 0.000; blast radius 0.100</dd>
+</dl>
+</article><article class="finding info">
+<h3>22. EC2 instance could run on Graviton (arm64) <span class="badge info">info</span></h3>
+<dl>
+<dt>Resource</dt><dd><code>i-0a1b2c3d4e5f60001</code> (<code>aws_instance.booking_api</code>)</dd>
+<dt>Evidence</dt><dd>i-0a1b2c3d4e5f60001 (aws_instance.booking_api): m5.large has an arm64 Graviton equivalent (m7g.large) at roughly 20% lower price. Fixing it saves USD 14.02/month (20% of the cost observed in CUR).</dd>
+<dt>Suggested fix</dt><dd>Rebuild the AMI for arm64 and test the workload before switching aws_instance.booking_api to Graviton <em>(investigate)</em></dd>
+<dt>Controls</dt><dd>-</dd>
+<dt>Impact</dt><dd>$14.02 per month; risk reduction 0.000; blast radius 0.600</dd>
+</dl>
+</article><article class="finding info">
+<h3>23. S3 bucket has no lifecycle policy <span class="badge info">info</span></h3>
+<dl>
+<dt>Resource</dt><dd><code>tui-demo-access-logs</code> (<code>aws_s3_bucket.logs</code>)</dd>
+<dt>Evidence</dt><dd>tui-demo-access-logs (aws_s3_bucket.logs): no lifecycle configuration, so objects never move to cheaper storage classes or expire. Fixing it saves USD 1.10/month (30% of the cost observed in CUR).</dd>
+<dt>Suggested fix</dt><dd>Add aws_s3_bucket_lifecycle_configuration for aws_s3_bucket.logs (Intelligent-Tiering after 30 days, expire noncurrent versions) <em>(investigate)</em></dd>
+<dt>Controls</dt><dd>-</dd>
+<dt>Impact</dt><dd>$1.10 per month; risk reduction 0.050; blast radius 0.250</dd>
+</dl>
+</article>
+
+<p class="note">CloudSpendGuard never applies a change. Patches from <code>csg remediate</code> are shown for human review only.</p>
+</main>
+</body>
+</html>
