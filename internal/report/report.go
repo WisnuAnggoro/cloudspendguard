@@ -38,6 +38,7 @@ type Inputs struct {
 	Events     int  `json:"cloudtrail_events"`
 	Terraform  int  `json:"terraform_resources"`
 	SampleData bool `json:"sample_data,omitempty"`
+	LiveData   bool `json:"live_data,omitempty"`
 }
 
 // Anomaly lists the days one billing series was flagged on.

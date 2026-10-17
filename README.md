@@ -2,7 +2,7 @@
 
 > Unified FinOps + Cloud Security Posture CLI for AWS. Local-first. Written in Go.
 
-**Status:** Unit 6 (Week 6), `v0.6.0-beta`. One command, `csg run`, now goes from exports to an HTML, Markdown, JSON, or SARIF report, and the detection experiment against tfsec and Checkov is in [`docs/evaluation.md`](docs/evaluation.md). The core is unchanged from `v0.3.0-algo`: the full rule library (15 cost rules and 20 security rules mapped to CIS AWS Foundations v3.0.0), an STL plus Isolation Forest cost-anomaly detector, the joint prioritizer with per-component scores, and LLM-assisted Terraform remediation behind an independent verifier (`csg remediate`). Ollama is the default backend, so nothing leaves the machine. Core packages have 97% statement coverage against a 90% gate. See [`CHANGELOG.md`](CHANGELOG.md), the [demo runbook](docs/demo.md), and [`docs/gantt.mmd`](docs/gantt.mmd) for the remaining schedule.
+**Status:** Unit 7 (Week 7), `v0.9.0-rc1`. The release candidate adds system-level testing and maintenance: an adversarial prompt-injection suite (30 payloads, `make adversarial`), live mode for S3 through a read-only AWS role (`csg run --live`, with a LocalStack acceptance test (`make acceptance`, Docker required)), and automated dependency updates (Dependabot plus Renovate). The core is unchanged since `v0.6.0-beta`: the full rule library (15 cost rules and 20 security rules mapped to CIS AWS Foundations v3.0.0), an STL plus Isolation Forest cost-anomaly detector, the joint prioritizer with per-component scores, and LLM-assisted Terraform remediation behind an independent verifier (`csg remediate`). Ollama is the default backend, so nothing leaves the machine. See [`CHANGELOG.md`](CHANGELOG.md), the [demo runbook](docs/demo.md), [`docs/maintenance.md`](docs/maintenance.md), and [`docs/gantt.mmd`](docs/gantt.mmd) for the remaining schedule.
 
 CloudSpendGuard produces a **single prioritized backlog** of remediation actions where each item shows both its **projected monthly savings** and **security-risk reduction**, so DevOps, FinOps, and Security teams stop working from three different dashboards.
 
@@ -115,6 +115,15 @@ make ci           # everything GitHub Actions runs, locally
 make bench        # NFR1 timings on synthetic CUR files
 make eval         # precision and recall against tfsec and Checkov
 ```
+
+Local linting requires golangci-lint v2 (CI pins v2.14.0), and missing or failing
+lint now stops `make ci`. For the v1 configuration error or Go's `covdata`
+toolchain-switching error, see [local CI troubleshooting](docs/ci-troubleshooting.md).
+
+`make acceptance` additionally requires a running Docker daemon and
+`LOCALSTACK_AUTH_TOKEN` for the pinned unified LocalStack image. The acceptance CI
+job reads the same-named Actions secret; token entry and CI setup are covered in
+the [troubleshooting guide](docs/ci-troubleshooting.md).
 
 ## Security & privacy
 

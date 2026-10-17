@@ -45,7 +45,7 @@ code.rule { white-space:nowrap; }
 <body>
 <main>
 <h1>CloudSpendGuard Report</h1>
-<p class="meta">Generated {{.Generated}} by csg {{.Version}}{{if .Inputs.SampleData}} on the bundled sample account{{end}}. Input: {{.Inputs.CUR}} CUR line items, {{.Inputs.Events}} CloudTrail events, {{.Inputs.Terraform}} Terraform resources.<br>
+<p class="meta">Generated {{.Generated}} by csg {{.Version}}{{if .Inputs.SampleData}} on the bundled sample account{{end}}{{if .Inputs.LiveData}} on a live S3 inventory{{end}}. Input: {{.Inputs.CUR}} CUR line items, {{.Inputs.Events}} CloudTrail events, {{.Inputs.Terraform}} Terraform resources.<br>
 Profile <code>{{.Profile}}</code>: score = {{.Weights.Alpha}} &times; savings + {{.Weights.Beta}} &times; risk &minus; {{.Weights.Gamma}} &times; blast radius, each term normalized to 0 to 1.</p>
 
 <section class="cards" aria-label="Summary">

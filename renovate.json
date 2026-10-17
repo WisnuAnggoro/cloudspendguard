@@ -1,0 +1,23 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "description": "Unit 7 (v0.9.0-rc1). Division of labor with Dependabot: Dependabot (.github/dependabot.yml) covers Go modules and GitHub Actions; Renovate covers the Dockerfile base image and the LocalStack image pinned in the acceptance test.",
+  "enabledManagers": ["dockerfile", "regex"],
+  "schedule": ["before 6:00 on Monday"],
+  "rangeStrategy": "bump",
+  "packageRules": [
+    {
+      "description": "Group minor and patch updates into one weekly PR; majors get their own PR for a real review.",
+      "matchUpdateTypes": ["minor", "patch"],
+      "groupName": "weekly image updates"
+    }
+  ],
+  "regexManagers": [
+    {
+      "description": "Track the LocalStack image pinned in the acceptance test so an emulator upgrade arrives as a reviewable PR.",
+      "fileMatch": ["run_acceptance_test\\.go$"],
+      "matchStrings": ["localstackImage = \"(?<depName>localstack/localstack):(?<currentValue>[^\"]+)\""],
+      "datasourceTemplate": "docker"
+    }
+  ]
+}

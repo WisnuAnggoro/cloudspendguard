@@ -16,6 +16,7 @@ import (
 	"github.com/wisnuanggoro/cloudspendguard/internal/analyze/anomaly"
 	"github.com/wisnuanggoro/cloudspendguard/internal/ingest/cloudtrail"
 	"github.com/wisnuanggoro/cloudspendguard/internal/ingest/cur"
+	"github.com/wisnuanggoro/cloudspendguard/internal/ingest/live"
 	"github.com/wisnuanggoro/cloudspendguard/internal/ingest/tfstate"
 	"github.com/wisnuanggoro/cloudspendguard/internal/prioritize"
 	"github.com/wisnuanggoro/cloudspendguard/internal/report"
@@ -94,6 +95,8 @@ func cmdRun(ctx context.Context, args []string, out io.Writer) error {
 	fs.SetOutput(io.Discard)
 	input := fs.String("input", "", "directory with CUR, CloudTrail, and Terraform files")
 	useSample := fs.Bool("sample", false, "analyze the bundled sample account (no files, no AWS credentials)")
+	useLive := fs.Bool("live", false, "inventory the account's S3 buckets live (read-only, needs AWS credentials); combine with --input for CUR and CloudTrail files")
+	roleARN := fs.String("role-arn", "", "read-only role to assume for --live")
 	reportPath := fs.String("report", "", "write a report to this path (format from the extension, or --format)")
 	format := fs.String("format", "", "report format: html, markdown, json, or sarif")
 	profile := fs.String("profile", "devops", "weighting profile")
@@ -108,8 +111,11 @@ func cmdRun(ctx context.Context, args []string, out io.Writer) error {
 	} else if len(rest) > 0 {
 		return usageError("run: unexpected argument " + rest[0])
 	}
-	if *useSample == (*input != "") {
-		return usageError("run: pass exactly one of --sample or --input <dir>")
+	if *useSample && (*useLive || *input != "") {
+		return usageError("run: pass exactly one of --sample, --input <dir>, or --live")
+	}
+	if !*useSample && !*useLive && *input == "" {
+		return usageError("run: pass exactly one of --sample, --input <dir>, or --live")
 	}
 	w, name, err := resolveWeights(*profile, *weights)
 	if err != nil {
@@ -150,11 +156,17 @@ func cmdRun(ctx context.Context, args []string, out io.Writer) error {
 			return err
 		}
 	}
-	found, err := discoverInputs(dir)
-	if err != nil {
-		return fmt.Errorf("run: %w", err)
+	var found inputs
+	if dir != "" {
+		found, err = discoverInputs(dir)
+		if err != nil {
+			return fmt.Errorf("run: %w", err)
+		}
 	}
-	if found.empty() {
+	if *useLive && len(found.terraform) > 0 {
+		return fmt.Errorf("run: --live replaces the Terraform state path; move the .tfstate files out of %s or drop --live", dir)
+	}
+	if found.empty() && !*useLive {
 		return fmt.Errorf("run: no CUR, CloudTrail, or Terraform files in %s", dir)
 	}
 
@@ -213,6 +225,18 @@ func cmdRun(ctx context.Context, args []string, out io.Writer) error {
 			return closeStore(err)
 		}
 	}
+	if *useLive {
+		// The live S3 inventory flows through the same store as Terraform
+		// state, so downstream analyzers and reports run unchanged.
+		coll := live.NewCollector(live.Options{RoleARN: *roleARN})
+		res, err := coll.Collect(ctx)
+		if err != nil {
+			return closeStore(fmt.Errorf("run: live: %w", err))
+		}
+		if _, err := st.InsertTerraformResources(ctx, res); err != nil {
+			return closeStore(err)
+		}
+	}
 	mark("ingest", t0)
 
 	t0 = time.Now()
@@ -237,6 +261,7 @@ func cmdRun(ctx context.Context, args []string, out io.Writer) error {
 		w: w, profile: name, top: *top, quiet: *quiet, stats: *stats,
 		reportPath: *reportPath, format: rf, sarifURI: *sarifURI, sample: *useSample,
 		nCUR: len(curRecs), nEv: len(events), nTF: len(resources), stages: &stages, began: began,
+		live: *useLive,
 	})
 	return closeStore(err)
 }
@@ -253,6 +278,7 @@ type pipelineArgs struct {
 	format         report.Format
 	sarifURI       string
 	sample         bool
+	live           bool
 	nCUR, nEv, nTF int
 	stages         *[]stage
 	began          time.Time
@@ -286,7 +312,7 @@ func runPipeline(ctx context.Context, out io.Writer, a pipelineArgs) error {
 		t0 = time.Now()
 		rep := report.Report{
 			Version: version, GeneratedAt: time.Now().UTC(), Profile: a.profile, Weights: a.w,
-			Inputs:   report.Inputs{CUR: a.nCUR, Events: a.nEv, Terraform: a.nTF, SampleData: a.sample},
+			Inputs:   report.Inputs{CUR: a.nCUR, Events: a.nEv, Terraform: a.nTF, SampleData: a.sample, LiveData: a.live},
 			Findings: ranked, Anomalies: anoms, ArtifactURI: a.sarifURI,
 		}
 		if err := writeReport(a.reportPath, a.format, rep); err != nil {

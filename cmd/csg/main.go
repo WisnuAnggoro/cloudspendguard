@@ -84,7 +84,7 @@ Commands:
   analyze                      Run 15 cost and 20 security rules and print a prioritized backlog
   anomalies                    Show the STL + Isolation Forest cost-anomaly scores per series
   remediate <finding-id>       Generate a Terraform patch with an LLM and verify it (never applied)
-  run                          Ingest, analyze, rank, and report in one step (--sample or --input <dir>)
+  run                          Ingest, analyze, rank, and report in one step (--sample, --input <dir>, or --live for a read-only S3 inventory)
   report                       Render the backlog from the local store as html, markdown, json, or sarif
   version                      Print version
   help                         Print this help
