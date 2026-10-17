@@ -17,7 +17,7 @@ requirement is unambiguous, testable, and free of implementation detail
 | FR6 | Produce a single prioritized backlog in which every item carries both a projected monthly saving and a risk-reduction score | M7 | Golden-file test asserting both fields are populated on every backlog row |
 | FR7 | Generate Terraform remediation patches and reject any that fails verification | M8, M9 | Adversarial suite: patches that introduce a finding must be rejected |
 | FR8 | Emit reports in Markdown, HTML, JSON, and SARIF | M10 | Schema validation of JSON output; SARIF 2.1.0 validated against the official schema |
-| FR9 | Operate in local-file mode with no AWS credentials, and in live mode using a read-only IAM role | M3b, M11 | End-to-end test with the credential environment cleared |
+| FR9 | Operate in local-file mode with no AWS credentials, and in live mode using a read-only IAM role | M3b, M11 | Credential-free local-file tests; fake-S3 CLI test; developer-run LocalStack acceptance passed October 17, 2026 (`docs/localstack-acceptance-2026-10-17.md`). CI job configured; CI result not yet recorded. |
 
 ## Non-functional requirements
 
@@ -56,9 +56,9 @@ nominally complete yet operationally unusable
 | FR4 | Met, 15 rules | `cost/rules_test.go`: registry length 15, positive and negative case per rule, savings asserted |
 | FR5 | Met, 20 rules | `security/rules_test.go`: registry length 20, CIS v3.0.0 control asserted per rule |
 | FR6 | Met | `prioritize_test.go` (100%), `main_test.go` end-to-end backlog of 23 findings |
-| FR7 | Met | `verify_test.go` (13 rejection cases), `llm_test.go` (12 injection payloads, 9 malicious answers, 5 golden fixtures) |
+| FR7 | Met | `verify_test.go` (13 rejection cases), `llm_test.go` (12 injection payloads, 9 malicious answers, 5 golden fixtures), `adversarial_test.go` (30 payloads + 5 benign controls, Unit 7) |
 | FR8 | Met | `report_test.go` (94%): Markdown, HTML, JSON, SARIF; SARIF validated against the OASIS 2.1.0 schema by `scripts/validate_sarif.py` and the CI smoke job |
-| FR9 | Local-file mode met; live AWS mode not built | `TestRun_SampleToEveryFormat`, `TestRun_InputDirectoryAndReportFromStore` |
+| FR9 | Met (S3 scope, v0.9.0-rc1) | `TestRun_SampleToEveryFormat`, `TestRun_InputDirectoryAndReportFromStore` (local mode); `TestAcceptance_LiveModeLocalStack` (live mode, LocalStack via testcontainers) |
 | NFR1 | Partly met | 1,000,000 rows in 7.1 s; about 60 s extrapolated for 1 GB, but about 13 GB of memory (`docs/evaluation.md` section 2) |
 | NFR4 | Met | Cross-compilation matrix in CI; Docker image is distroless static |
 | NFR5 | Met | `csg run --sample` uses data embedded in the binary; CI smoke job |
