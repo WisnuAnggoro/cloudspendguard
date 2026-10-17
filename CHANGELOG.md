@@ -33,6 +33,9 @@ Integration, reporting, evaluation, and deployment. Tag `v0.6.0-beta` on the mer
 
 ### Fixed
 
+- Evaluation runner supports Bash 3.2 without empty-array expansion, uses portable
+  Python timing, marks missing scanners explicitly, and removes stale outputs.
+  Shell scripts explicitly require LF line endings in `.gitattributes`.
 - SARIF validator now loads certifi's certificate bundle in addition to the configured/default
   trust roots, avoiding missing-CA failures on macOS while retaining TLS verification.
   Dependency installation uses `python3 -m pip` to match the executing interpreter.
