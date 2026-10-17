@@ -176,3 +176,50 @@ instead of shipping an untested handler (RAID entry D-08).
 - Docker: pin an exact tag (`0.6.0-beta`), never `latest`; roll back by redeploying the previous tag.
 - CloudFormation: `aws cloudformation deploy` with the previous `ImageUri`, or delete the stack. The report
   bucket has `DeletionPolicy: Retain`, so reports survive a rollback.
+
+## 9. Troubleshooting evaluation commands
+
+Run `make eval` from the CloudSpendGuard repository root, where `Makefile` is located.
+If the output is `cat eval.sh >eval` followed by `chmod a+x eval`, make has selected an
+implicit rule that copies a script instead of running the evaluation. This commonly
+happens when the command is run inside `scripts/`. Return to the repository root and
+check the recipe before executing it:
+
+```bash
+cd /path/to/cloudspendguard
+make -n eval                       # expected: scripts/eval.sh
+make eval
+```
+
+If execution fails with `env: bash\r: No such file or directory`, the shell script
+has CRLF line endings. Convert the existing local scripts to LF, then try again:
+
+```bash
+perl -pi -e 's/\r$//' scripts/*.sh
+chmod +x scripts/eval.sh scripts/bench.sh
+make eval
+```
+
+`.gitattributes` explicitly requires LF for `*.sh` files. That controls Git checkouts,
+but cannot prevent an editor or a copying tool from changing the local bytes.
+The evaluation script supports Bash 3.2 and uses Python 3's monotonic timer, so
+GNU `date` and `bc` are not required on macOS. If tfsec or Checkov is missing,
+the script explicitly marks the comparison as incomplete and scores only the
+tools available in that run. It deletes old scanner outputs before starting;
+missing tools therefore cannot contribute stale results.
+
+For the full comparison on macOS, install the scanners and verify that they are
+on your PATH:
+
+```bash
+brew install tfsec checkov
+tfsec --version
+checkov --version
+make eval
+```
+
+The Homebrew installation commands are documented in the
+[tfsec formula](https://formulae.brew.sh/formula/tfsec) and
+[Checkov formula](https://formulae.brew.sh/formula/checkov).
+These may install versions different from the report's original experiment;
+record your displayed versions and report your own scores.
