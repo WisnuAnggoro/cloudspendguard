@@ -5,6 +5,67 @@ All notable changes to CloudSpendGuard. The format follows
 [Semantic Versioning](https://semver.org/) with the milestone tags defined in
 [`docs/version-control.md`](docs/version-control.md).
 
+## [0.9.0-rc1], Unit 7 (Week 7)
+
+System testing, adversarial hardening, live mode, and maintenance. Tag `v0.9.0-rc1` on the merge commit into `main`. The capstone builds toward `v1.0.0`; the `-rc1` suffix marks the first release candidate: the feature set is complete for the capstone scope, and the remaining work is hardening and documentation.
+
+### Added
+
+- Adversarial prompt-injection suite (`make adversarial`): 30 payloads in six categories plus 5 benign controls in
+  `internal/llm/testdata/adversarial/payloads.json`, each with an explicit expected outcome (withheld, fenced, or
+  passthrough). 22 payloads are withheld at the sanitizer, 8 evaders stay inside the nonce-fenced data block and
+  are still caught by the verifier, and no benign value is mangled.
+- Live mode (`csg run --live`, optional `--role-arn`): read-only S3 inventory through the AWS API (ListBuckets,
+  GetBucketLocation, GetPublicAccessBlock, GetBucketPolicy, GetBucketLifecycleConfiguration), mapped into the same
+  normalized resource shape as Terraform state so the analyzers run unchanged. `AWS_ENDPOINT_URL` is honored for
+  emulators; bucket-level calls use per-region clients.
+- Acceptance test for live mode (`make acceptance`, build tag `acceptance`): a CLI-level test that starts LocalStack
+  (2026.10.0) via testcontainers-go, seeds a public and a locked-down bucket, runs `csg run --live`, and asserts only
+  the public bucket is flagged (SEC-S3-PUBLIC-001) and named in the report. Runs in CI as its own job; a Docker-free
+  CLI test (`TestRun_LiveModeStandalone`) covers the same path against a fake S3 server.
+- Maintenance automation: `.github/dependabot.yml` (Go modules, GitHub Actions, Docker) and `renovate.json`
+  (grouped weekly updates, LocalStack pinned).
+- `docs/maintenance.md`: the maintenance plan (four maintenance types, schedule, risk register).
+
+### Changed
+
+- `internal/ingest/live` is no longer a stub: the collector is real, and permission failures fail loudly instead
+  of returning a partial inventory. A missing public-access-block configuration is treated as a coverage gap, not
+  as proof of exposure.
+- The HTML report footer notes when the input was a live inventory.
+
+### Fixed
+
+- Local CI no longer swallows lint failures as “not installed”: a missing or v1
+  linter fails with a diagnostic, and v2 lint findings propagate to make.
+- `make test` separates race testing from coverage collection to avoid the Go
+  toolchain-switching `covdata` failure on packages without tests. The 90% core
+  coverage gate remains a required dependency of `make ci`.
+- `GO` now defaults to `go`, so the adversarial and acceptance targets invoke the
+  intended executable. Removed two unused items in the live-collector tests
+  identified by the pinned v2 linter.
+- Added eight Makefile regression checks and `docs/ci-troubleshooting.md`.
+- Acceptance now checks daemon connectivity before launching Go and passes the
+  current context's local socket to Testcontainers. Added five orchestration
+  checks (13 total) and Docker Desktop/context troubleshooting instructions.
+- The pinned unified LocalStack image now receives `LOCALSTACK_AUTH_TOKEN`
+  explicitly from the host environment. Missing-token checks fail clearly
+  without printing the credential, and the acceptance workflow reads the
+  same-named GitHub Actions secret. Added a missing-token regression check
+  (14 orchestration checks total).
+- The private-bucket lifecycle acceptance fixture now includes an explicit
+  empty-prefix filter, required when no legacy prefix is present. A Docker-free,
+  acceptance-tagged regression test checks the real SDK's serialized XML for
+  that shared fixture.
+
+### Verification
+
+- Developer-run `make acceptance` passed on Docker Desktop on October 17, 2026:
+  the LocalStack scenario completed in 10.87 s, the lifecycle XML test in
+  0.00 s, and the package in 11.363 s. This is user-supplied local execution
+  evidence, not a sandbox or CI run; see
+  `docs/localstack-acceptance-2026-10-17.md`.
+
 ## [0.6.0-beta], Unit 6 (Week 6)
 
 Integration, reporting, evaluation, and deployment. Tag `v0.6.0-beta` on the merge commit into `main`.
