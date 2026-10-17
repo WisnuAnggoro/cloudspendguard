@@ -1,5 +1,7 @@
-.PHONY: build build-all test cover cover-gate lint sample-data sample-report demo golden ci clean bench eval docker docker-run
+.PHONY: build build-all test cover cover-gate lint sample-data sample-report demo golden ci clean bench eval docker docker-run adversarial acceptance test-makefile
 
+GO      ?= go
+GOLANGCI_LINT ?= golangci-lint
 BINARY  := csg
 PKG     := ./...
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo 0.6.0-beta)
@@ -8,36 +10,53 @@ DEMO_DB := tmp/demo.db
 
 # Static binary, no cgo (NFR4).
 build:
-	CGO_ENABLED=0 go build -trimpath -ldflags "$(LDFLAGS)" -o bin/$(BINARY) ./cmd/csg
+	CGO_ENABLED=0 $(GO) build -trimpath -ldflags "$(LDFLAGS)" -o bin/$(BINARY) ./cmd/csg
 
 # Cross-compile the release targets into dist/.
 build-all:
 	@for t in linux/amd64 linux/arm64 darwin/amd64 darwin/arm64 windows/amd64; do \
 		os=$${t%/*}; arch=$${t##*/}; ext=; [ "$$os" = windows ] && ext=.exe; \
 		echo "building $$os/$$arch"; \
-		CGO_ENABLED=0 GOOS=$$os GOARCH=$$arch go build -trimpath -ldflags "$(LDFLAGS)" -o dist/$(BINARY)-$$os-$$arch$$ext ./cmd/csg || exit 1; \
+		CGO_ENABLED=0 GOOS=$$os GOARCH=$$arch $(GO) build -trimpath -ldflags "$(LDFLAGS)" -o dist/$(BINARY)-$$os-$$arch$$ext ./cmd/csg || exit 1; \
 	done
 
+# Race tests cover every package. Coverage is collected separately by `cover`
+# and enforced by `cover-gate` in `ci`. This avoids Go issue #75031 for
+# auto-switched toolchains covering tool packages that have no test files.
 test:
-	go test -v -race -cover $(PKG)
+	$(GO) test -v -race $(PKG)
 
 cover:
-	go test -covermode=atomic -coverprofile=coverage.out $(PKG)
-	go tool cover -func=coverage.out | tail -1
+	$(GO) test -covermode=atomic -coverprofile=coverage.out $(PKG)
+	$(GO) tool cover -func=coverage.out | tail -1
 
 # NFR3: 90% or higher statement coverage on the analyzers and core algorithms.
 cover-gate:
-	go test -covermode=atomic -coverprofile=core.out ./internal/analyze/... ./internal/prioritize/... ./internal/llm/... ./internal/report/...
-	@go tool cover -func=core.out | awk '/^total:/ { gsub("%", "", $$3); if ($$3 + 0 < 90) { printf "core coverage %s%% is below 90%%\n", $$3; exit 1 } else { printf "core coverage %s%% (gate 90%%)\n", $$3 } }'
+	$(GO) test -covermode=atomic -coverprofile=core.out ./internal/analyze/... ./internal/prioritize/... ./internal/llm/... ./internal/report/...
+	@$(GO) tool cover -func=core.out | awk '/^total:/ { gsub("%", "", $$3); if ($$3 + 0 < 90) { printf "core coverage %s%% is below 90%%\n", $$3; exit 1 } else { printf "core coverage %s%% (gate 90%%)\n", $$3 } }'
 
 lint:
-	go vet $(PKG)
-	@which golangci-lint > /dev/null && golangci-lint run || echo "golangci-lint not installed, skipping"
+	$(GO) vet $(PKG)
+	@if ! command -v "$(GOLANGCI_LINT)" >/dev/null 2>&1; then \
+		echo "golangci-lint v2 is required (CI pins v2.14.0). See docs/ci-troubleshooting.md."; \
+		exit 1; \
+	fi
+	@version="$$("$(GOLANGCI_LINT)" version)" || exit 1; \
+	case "$$version" in \
+		*"version 2."*) ;; \
+		*) echo "golangci-lint v2 is required for .golangci.yml; found: $$version"; \
+		   echo "Install the CI-pinned v2.14.0 binary. See docs/ci-troubleshooting.md."; exit 1 ;; \
+	esac
+	$(GOLANGCI_LINT) run
+
+# Makefile behavior checks using fake tools; Python 3, no AWS or Docker needed.
+test-makefile:
+	python3 scripts/test_makefile.py
 
 # Regenerate the synthetic fixtures in testdata/, then refresh the copies that
 # `csg run --sample` embeds in the binary (internal/sample/data).
 sample-data:
-	go run ./tools/gensample -out testdata
+	$(GO) run ./tools/gensample -out testdata
 	cp testdata/sample-cur.csv testdata/sample-events.json testdata/terraform.tfstate internal/sample/data/
 
 # The committed example report, rendered from the bundled sample account.
@@ -76,9 +95,17 @@ demo: build
 	./bin/$(BINARY) run --sample --report tmp/demo-report.html --stats --top 5
 	./bin/$(BINARY) report --db $(DEMO_DB) --format sarif --out tmp/demo.sarif
 
+# Unit 7 adversarial prompt-injection suite: 30 payloads + benign controls.
+adversarial:
+	$(GO) test ./internal/llm -run 'TestAdversarial' -count=1 -v
+
+# Unit 7 acceptance test for live mode. Needs Docker (LocalStack container).
+acceptance:
+	sh scripts/acceptance.sh "$(GO)"
+
 # Rewrite testdata/golden/*.diff after an intended change to the LLM layer.
 golden:
-	go test ./internal/llm -run TestGolden -update
+	$(GO) test ./internal/llm -run TestGolden -update
 
 # Run the same gates as GitHub Actions locally (fallback for RAID D-07).
 ci: lint test cover-gate build-all demo

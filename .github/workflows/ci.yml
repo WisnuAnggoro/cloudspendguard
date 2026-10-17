@@ -159,6 +159,22 @@ jobs:
           docker tag csg:ci "${image}:${GITHUB_REF_NAME#v}"
           docker push "${image}:${GITHUB_REF_NAME#v}"
 
+  acceptance:
+    # Unit 7 (v0.9.0-rc1): the live mode acceptance test against LocalStack.
+    # Separated from the test matrix because it needs Docker and pulls the
+    # localstack image, so it is slower than the unit suite.
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+      - name: Live mode acceptance test (LocalStack via testcontainers)
+        env:
+          LOCALSTACK_AUTH_TOKEN: ${{ secrets.LOCALSTACK_AUTH_TOKEN }}
+        run: make acceptance
+
   code-scanning:
     needs: smoke
     # Manual only: the fixtures are deliberately insecure, so uploading them
