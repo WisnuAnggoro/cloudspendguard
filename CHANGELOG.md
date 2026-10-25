@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.0.0] - 2026-10-22
+
+First stable release; the feature set is unchanged from `v0.9.0-rc1`, and this release
+finalizes documentation and dissemination for the public repository.
+
+### Added
+- Release notes for v1.0.0 (`docs/releases/v1.0.0.md`).
+- `scripts/generate_example_survey.py`, the in-repo generator for the clearly labelled simulated survey example and its figure, previously referenced from outside the repository.
+
+### Changed
+- `docs/architecture.md` and `docs/survey/simulated-data-note.md` no longer reference files outside this repository, so the public clone is self-contained.
+- README status refreshed to v1.0.0.
+
+### Fixed
+- None; no Go runtime changes in this release.
+
 All notable changes to CloudSpendGuard. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and versions follow
 [Semantic Versioning](https://semver.org/) with the milestone tags defined in

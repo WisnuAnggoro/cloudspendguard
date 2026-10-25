@@ -1,8 +1,8 @@
 # Maintenance plan
 
-Unit 7 deliverable (v0.9.0-rc1). This document is the operational counterpart
-of the maintenance plan in the Unit 7 assignment: what will be maintained,
-how, and how the version-control process supports it.
+Operational maintenance plan for CloudSpendGuard (current release: v1.0.0). This document is
+the operational counterpart of the maintenance approach: what will be maintained, how, and how
+the version-control process supports it.
 
 ## Maintenance types
 
