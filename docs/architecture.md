@@ -1,9 +1,7 @@
 # CloudSpendGuard: Architecture
 
-Authoritative design document for the CloudSpendGuard capstone (MSIT 5910). Last revised in Unit 3
-alongside `docs/requirements.md`. The narrative version submitted for Unit 3 lives at
-`../../capstone-plan/Unit3-Doc1-Architecture-and-Version-Control.md`, and the full technical report at
-`../../capstone-plan/Unit3-Doc2-Technical-Report.md`.
+Authoritative design document for CloudSpendGuard. Last revised alongside `docs/requirements.md`;
+this document is the architecture source of truth for the repository.
 
 ## Architectural style
 
