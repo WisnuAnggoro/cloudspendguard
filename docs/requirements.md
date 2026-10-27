@@ -58,8 +58,8 @@ nominally complete yet operationally unusable
 | FR6 | Met | `prioritize_test.go` (100%), `main_test.go` end-to-end backlog of 23 findings |
 | FR7 | Met | `verify_test.go` (13 rejection cases), `llm_test.go` (12 injection payloads, 9 malicious answers, 5 golden fixtures), `adversarial_test.go` (30 payloads + 5 benign controls, Unit 7) |
 | FR8 | Met | `report_test.go` (94%): Markdown, HTML, JSON, SARIF; SARIF validated against the OASIS 2.1.0 schema by `scripts/validate_sarif.py` and the CI smoke job |
-| FR9 | Met (S3 scope, v0.9.0-rc1) | `TestRun_SampleToEveryFormat`, `TestRun_InputDirectoryAndReportFromStore` (local mode); `TestAcceptance_LiveModeLocalStack` (live mode, LocalStack via testcontainers) |
-| NFR1 | Partly met | 1,000,000 rows in 7.1 s; about 60 s extrapolated for 1 GB, but about 13 GB of memory (`docs/evaluation.md` section 2) |
+| FR9 | Met (S3 scope, v1.0.0) | `TestRun_SampleToEveryFormat`, `TestRun_InputDirectoryAndReportFromStore` (local mode); `TestAcceptance_LiveModeLocalStack` (live mode, LocalStack via testcontainers) |
+| NFR1 | Partly met | 1,000,000 rows in 2.62 s on an Apple M3 Pro (7.1 s on the 2-vCPU Linux CI VM); about 60 s extrapolated for 1 GB, but about 13 GB of memory (`docs/evaluation.md` section 2) |
 | NFR4 | Met | Cross-compilation matrix in CI; Docker image is distroless static |
 | NFR5 | Met | `csg run --sample` uses data embedded in the binary; CI smoke job |
 | NFR2 | Met | Remote provider refused without `--allow-remote`; redaction forced (`TestNewConfig`, `TestSanitizer`) |
